@@ -81,8 +81,15 @@ public sealed class Plugin : BaseUnityPlugin
     private static void OnInitializeLevel(LevelInitSequence __instance, Level __0)
     {
         AddOnDroneResetHandler();
-        if (__0.LevelFlags != LevelFlags.TrackEdit)
-            __instance.onGameModeInitialized += OnGameModeInitialized;
+        if (__0.LevelFlags == LevelFlags.TrackEdit)
+            return;
+
+        void Callback()
+        {
+            OnGameModeInitialized();
+            __instance.onGameModeInitialized -= Callback;
+        }
+        __instance.onGameModeInitialized += Callback;
     }
 
     private static void AddPhysics(TrackBlueprint blueprint, TrackItemFlag flag)
