@@ -18,7 +18,7 @@ Adds physics to objects
 
 ![Physics demo](images/physics.gif)
 
-### Unlock blueprint object
+### Unlock blueprint objects
 
 Allow to place objects from the Blueprint map on any map
 
