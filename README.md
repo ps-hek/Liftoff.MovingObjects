@@ -2,6 +2,8 @@
 
 > **Warning!** This project is not official and is not supported by Liftoff game developers!
 
+> **Warning!** Created maps must be run with the mod installed. If you run a map with animation in the game without the mod animations will not work.
+
 Mod for Liftoff game to extend functionality of the track editor.
 
 ## Features
