@@ -31,3 +31,8 @@ Allow to place objects from the Blueprint map on any map
 
  1. Open game directory (Steam -> Manage -> Browse local files)
  2. Download latest [Liftoff.MovingObjects release](https://github.com/ps-hek/Liftoff.MovingObjects/releases/latest) and extract to game folder
+
+
+## Maps
+
+* [MOD_PSHEK_FRPV_BANDO-NICE_1](https://steamcommunity.com/sharedfiles/filedetails/?id=3174317892)
