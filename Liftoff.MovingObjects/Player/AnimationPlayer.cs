@@ -7,19 +7,15 @@ namespace Liftoff.MovingObjects.Player;
 
 internal  sealed class AnimationPlayer : MonoBehaviour
 {
-    private const float MinDistance = 0.001f;
-    private int _currentStep;
-    private float _currentStepDistance;
-    private Quaternion _currentStepRotation;
     private Vector3 _initPosition;
-
-    private bool _paused;
     private Quaternion _initRotation;
 
     public MO_AnimationOptions options;
     public List<MO_Animation> steps;
+    
     private Step[] _stepsCached;
     private Rigidbody _rigidBody;
+    private Coroutine _animationCoroutine;
 
     private void Start()
     {
@@ -30,75 +26,78 @@ internal  sealed class AnimationPlayer : MonoBehaviour
         _initPosition = transform.position;
         _initRotation = transform.rotation;
 
-        _currentStepRotation = transform.rotation;
-        _currentStepDistance = CalculateSafeDistance(_stepsCached[0].Position);
+        StartAnimationLoop();
     }
 
-    private float CalculateSafeDistance(Vector3 pos2)
+    private void StartAnimationLoop()
     {
-        var dist = Vector3.Distance(transform.position, pos2);
-        if (dist == 0f)
-            dist = Mathf.Epsilon;
-        return dist;
+        _animationCoroutine = StartCoroutine(AnimationLoop());
     }
 
-    private IEnumerator WaitAndResume(float delay)
+    private IEnumerator AnimationLoop()
     {
-        _paused = true;
-        yield return new WaitForSeconds(delay);
-        _paused = false;
+        while (true)
+            yield return PlayAnimation();
     }
 
-    private void Update()
+    private IEnumerator PlayAnimation()
     {
-        if (_paused)
-            return;
-
-        var step = _stepsCached[_currentStep];
-        var distance = Vector3.Distance(transform.position, step.Position);
-        if (Mathf.Abs(distance) > MinDistance)
+        for (var i = 0; i < _stepsCached.Length; i++)
         {
-            var pos = Vector3.MoveTowards(transform.position, step.Position, step.Speed * Time.deltaTime);
-            var rot = Quaternion.Lerp(_currentStepRotation, step.Rotation, 1 - distance / _currentStepDistance);
-            _rigidBody.MovePosition(pos);
-            _rigidBody.MoveRotation(rot);
-            return;
-        }
-
-        _currentStep++;
-        if (_currentStep >= steps.Count)
-        {
-            _currentStep = 0;
-            if (steps.Count > 0 && options?.teleportToStart == true)
+            var step = _stepsCached[i];
+            if (step.Time <= 0f || (i == 0 && options.teleportToStart))
             {
-                var firstStep = new Step(steps[0]);
-                _rigidBody.MovePosition(firstStep.Position);
-                _rigidBody.MoveRotation(firstStep.Rotation);
+                MoveRigidBody(step.Position, step.Rotation);
+                yield return null;
+            }
+            else
+            {
+                if (step.Delay > 0)
+                    yield return new WaitForSeconds(step.Delay);
+                yield return MoveObject(step.Position, step.Rotation, step.Time);
             }
         }
+    }
 
-        _currentStepRotation = transform.rotation;
-        _currentStepDistance = CalculateSafeDistance(_stepsCached[_currentStep].Position);
-        
-        var delay = _stepsCached[_currentStep].Delay;
-        if (delay > 0)
-            StartCoroutine(WaitAndResume(delay));
+    private IEnumerator MoveObject(Vector3 targetPosition, Quaternion targetRotation, float duration)
+    {
+        var elapsed = 0f;
+        var startPosition = transform.position;
+        var startRotation = transform.rotation;
+
+        while (elapsed < duration)
+        {
+            var t = elapsed / duration;
+            MoveRigidBody(Vector3.Lerp(startPosition, targetPosition, t), Quaternion.Lerp(startRotation, targetRotation, t));
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        MoveRigidBody(targetPosition, targetRotation);
+        yield return null;
+    }
+
+    private void MoveRigidBody(Vector3 targetPosition, Quaternion targetRotation)
+    {
+        _rigidBody.MovePosition(targetPosition);
+        _rigidBody.MoveRotation(targetRotation);
     }
 
     public void Restart()
     {
-        _currentStep = 0;
-        _paused = false;
+        StopCoroutine(_animationCoroutine);
 
-        transform.position = _initPosition;
-        transform.rotation = _initRotation;
+        _rigidBody.MovePosition(_initPosition);
+        _rigidBody.MoveRotation(_initRotation);
+
+        StartAnimationLoop();
     }
 
     private struct Step
     {
         public readonly Vector3 Position;
         public readonly Quaternion Rotation;
-        public readonly float Speed;
+        public readonly float Time;
         public readonly float Delay;
 
         private static Vector3 ToVector3(SerializableVector3 serializableVector3)
@@ -110,7 +109,7 @@ internal  sealed class AnimationPlayer : MonoBehaviour
         {
             Position = ToVector3(animation.position);
             Rotation = Quaternion.Euler(ToVector3(animation.rotation));
-            Speed = animation.speed;
+            Time = animation.time;
             Delay = animation.delay;
         }
     }

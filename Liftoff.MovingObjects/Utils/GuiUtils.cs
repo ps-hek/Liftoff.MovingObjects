@@ -40,7 +40,7 @@ internal static class GuiUtils
         GUI.enabled = enabled;
         try
         {
-            value = float.Parse(GUILayout.TextField(value.ToString("F3")), CultureInfo.InvariantCulture);
+            value = float.Parse(GUILayout.TextField(value.ToString("F4")), CultureInfo.InvariantCulture);
         }
         catch (Exception ex)
         {

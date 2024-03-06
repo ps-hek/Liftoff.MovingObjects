@@ -69,7 +69,7 @@ namespace Liftoff.MovingObjects.Patcher
 
             var animationType = AddSerializableType(assembly, "MO_Animation");
             AddSerializableField(assembly, animationType, "delay", assembly.MainModule.ImportReference(typeof(float)));
-            AddSerializableField(assembly, animationType, "speed", assembly.MainModule.ImportReference(typeof(float)));
+            AddSerializableField(assembly, animationType, "time", assembly.MainModule.ImportReference(typeof(float)));
 
             AddSerializableField(assembly, animationType, "position", vectorType);
             AddSerializableField(assembly, animationType, "rotation", vectorType);

@@ -130,7 +130,7 @@ public class AnimationEditorWindow : MonoBehaviour
                 _blueprint.mo_animationSteps.Add(new MO_Animation
                 {
                     delay = 0f,
-                    speed = 1f,
+                    time = 1f,
                     position = new SerializableVector3(_item.transform.position),
                     rotation = new SerializableVector3(_item.transform.rotation.eulerAngles)
                 });
@@ -225,7 +225,7 @@ public class AnimationEditorWindow : MonoBehaviour
 
 
                 GUILayout.BeginHorizontal();
-                GuiUtils.TextBoxFloat("Speed:", ref step.speed);
+                GuiUtils.TextBoxFloat("Time:", ref step.time);
                 GUILayout.EndHorizontal();
 
                 GUILayout.EndVertical();
