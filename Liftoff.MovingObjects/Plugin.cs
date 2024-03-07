@@ -1,9 +1,11 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using Liftoff.MovingObjects.Player;
 using Liftoff.MovingObjects.Utils;
+using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace Liftoff.MovingObjects;
@@ -69,6 +71,7 @@ public sealed class Plugin : BaseUnityPlugin
         var flightManger = FindObjectsOfType<FlightManager>().Single();
         flightManger.onDroneResetDone += () =>
         {
+            Log.LogInfo("Drone reset done");
             foreach (var player in FindObjectsOfType<AnimationPlayer>())
                 player.Restart();
             foreach (var player in FindObjectsOfType<PhysicsPlayer>())
@@ -92,15 +95,21 @@ public sealed class Plugin : BaseUnityPlugin
         __instance.onGameModeInitialized += Callback;
     }
 
-    private static void AddPhysics(TrackBlueprint blueprint, TrackItemFlag flag)
+    private static void AddPhysics(TrackBlueprint blueprint, Component flag)
     {
         Log.LogWarning($"Item with physics detected: {blueprint}, {flag}");
 
         var physicsPlayer = flag.gameObject.AddComponent<PhysicsPlayer>();
         physicsPlayer.options = blueprint.mo_animationOptions;
+
+        if (typeof(TrackItemKillDroneTrigger) == flag.GetType())
+        {
+            Log.LogWarning($"Apply collider fix for {flag}");
+            flag.GetComponentInChildren<Collider>().enabled = true;
+        }
     }
 
-    private static void AddAnimation(TrackBlueprint blueprint, TrackItemFlag flag)
+    private static void AddAnimation(TrackBlueprint blueprint, Component flag)
     {
         Log.LogWarning($"Item with animation detected: {blueprint}, {flag}");
 
@@ -109,9 +118,8 @@ public sealed class Plugin : BaseUnityPlugin
         player.options = blueprint.mo_animationOptions;
     }
 
-    private static void OnGameModeInitialized()
+    private static void InjectPlayers(IEnumerable<Component> flags)
     {
-        var flags = FindObjectsOfType<TrackItemFlag>();
         foreach (var flag in flags)
         {
             var blueprint = ReflectionUtils.GetPrivateFieldValueByType<TrackBlueprint>(flag);
@@ -120,5 +128,11 @@ public sealed class Plugin : BaseUnityPlugin
             else if (blueprint?.mo_animationSteps?.Count > 0)
                 AddAnimation(blueprint, flag);
         }
+    }
+
+    private static void OnGameModeInitialized()
+    {
+        InjectPlayers(FindObjectsOfType<TrackItemFlag>());
+        InjectPlayers(FindObjectsOfType<TrackItemKillDroneTrigger>());
     }
 }
