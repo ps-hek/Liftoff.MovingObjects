@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using BepInEx;
 using BepInEx.Logging;
@@ -15,8 +16,6 @@ public sealed class Plugin : BaseUnityPlugin
 {
     private static readonly ManualLogSource Log =
         BepInEx.Logging.Logger.CreateLogSource($"{PluginInfo.PLUGIN_NAME}.{nameof(Plugin)}");
-
-    private static bool _animationResetInitialized;
 
     private Harmony _harmony;
 
@@ -62,28 +61,41 @@ public sealed class Plugin : BaseUnityPlugin
             __result = true;
     }
 
-    private static void AddOnDroneResetHandler()
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(FlightManager), "ResetDroneRoutine")]
+    static IEnumerator ResetDroneRoutine(IEnumerator __result)
     {
-        if (_animationResetInitialized)
-            return;
-        _animationResetInitialized = true;
+        Log.LogInfo("Drone reset start");
 
-        var flightManger = FindObjectsOfType<FlightManager>().Single();
-        flightManger.onDroneResetDone += () =>
+        var animations = FindObjectsOfType<AnimationPlayer>();
+        var physics = FindObjectsOfType<PhysicsPlayer>();
+
+        foreach (var player in animations)
         {
-            Log.LogInfo("Drone reset done");
-            foreach (var player in FindObjectsOfType<AnimationPlayer>())
-                player.Restart();
-            foreach (var player in FindObjectsOfType<PhysicsPlayer>())
-                player.Restart();
-        };
+            player.enabled = false;
+            player.Restart();
+        }
+
+        foreach (var player in physics)
+        {
+            player.enabled = false;
+            player.Restart();
+        }
+
+        while (__result.MoveNext())
+            yield return __result.Current;
+
+        Log.LogInfo("Drone reset done");
+        foreach (var player in animations)
+            player.enabled = true;
+        foreach (var player in physics)
+            player.enabled = true;
     }
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(LevelInitSequence), "InitializeLevel", typeof(Level))]
     private static void OnInitializeLevel(LevelInitSequence __instance, Level __0)
     {
-        AddOnDroneResetHandler();
         if (__0.LevelFlags == LevelFlags.TrackEdit)
             return;
 
