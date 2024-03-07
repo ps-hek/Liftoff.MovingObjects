@@ -26,6 +26,9 @@ internal sealed class PhysicsPlayer : MonoBehaviour
 
     private IEnumerator StartPhysics()
     {
+        if (options.simulatePhysicsWarmupDelay > 0)
+            yield return new WaitForSeconds(options.simulatePhysicsWarmupDelay);
+
         while (true)
         {
             if (options.simulatePhysicsDelay > 0)

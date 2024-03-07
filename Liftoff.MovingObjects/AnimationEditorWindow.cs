@@ -172,12 +172,17 @@ public class AnimationEditorWindow : MonoBehaviour
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical();
-            GuiUtils.TextBoxFloat("Physics time:", ref _blueprint.mo_animationOptions.simulatePhysicsTime,
+            GuiUtils.TextBoxFloat("Time:", ref _blueprint.mo_animationOptions.simulatePhysicsTime,
                 _blueprint.mo_animationOptions.simulatePhysics);
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical();
-            GuiUtils.TextBoxFloat("Physics delay:", ref _blueprint.mo_animationOptions.simulatePhysicsDelay,
+            GuiUtils.TextBoxFloat("Delay:", ref _blueprint.mo_animationOptions.simulatePhysicsDelay,
+                _blueprint.mo_animationOptions.simulatePhysics);
+            GUILayout.EndVertical();
+
+            GUILayout.BeginVertical();
+            GuiUtils.TextBoxFloat("Warmup:", ref _blueprint.mo_animationOptions.simulatePhysicsWarmupDelay,
                 _blueprint.mo_animationOptions.simulatePhysics);
             GUILayout.EndVertical();
 
