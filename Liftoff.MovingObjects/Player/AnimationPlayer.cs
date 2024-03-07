@@ -87,8 +87,8 @@ internal  sealed class AnimationPlayer : MonoBehaviour
     {
         StopCoroutine(_animationCoroutine);
 
-        _rigidBody.MovePosition(_initPosition);
-        _rigidBody.MoveRotation(_initRotation);
+        _rigidBody.position = _initPosition;
+        _rigidBody.rotation = _initRotation;
 
         StartAnimationLoop();
     }

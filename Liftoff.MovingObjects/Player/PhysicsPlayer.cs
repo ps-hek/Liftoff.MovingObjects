@@ -47,8 +47,8 @@ internal sealed class PhysicsPlayer : MonoBehaviour
         _rigidBody.isKinematic = true;
         _rigidBody.velocity = Vector3.zero;
         _rigidBody.angularVelocity = Vector3.zero;
-        _rigidBody.MovePosition(_initPosition);
-        _rigidBody.MoveRotation(_initRotation);
+        _rigidBody.position = _initPosition;
+        _rigidBody.rotation = _initRotation;
     }
 
     public void Restart()
