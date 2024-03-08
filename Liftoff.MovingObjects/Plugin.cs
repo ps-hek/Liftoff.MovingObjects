@@ -114,10 +114,11 @@ public sealed class Plugin : BaseUnityPlugin
         var physicsPlayer = flag.gameObject.AddComponent<PhysicsPlayer>();
         physicsPlayer.options = blueprint.mo_animationOptions;
 
-        if (typeof(TrackItemKillDroneTrigger) == flag.GetType())
+        var collider = flag.GetComponentInChildren<Collider>();
+        if (collider?.enabled == false)
         {
-            Log.LogWarning($"Apply collider fix for {flag}");
-            flag.GetComponentInChildren<Collider>().enabled = true;
+            collider.enabled = true;
+            collider.gameObject.layer = LayerMask.NameToLayer("Ghost");
         }
     }
 
@@ -146,5 +147,9 @@ public sealed class Plugin : BaseUnityPlugin
     {
         InjectPlayers(FindObjectsOfType<TrackItemFlag>());
         InjectPlayers(FindObjectsOfType<TrackItemKillDroneTrigger>());
+        InjectPlayers(FindObjectsOfType<TrackItemShowTextTrigger>());
+        InjectPlayers(FindObjectsOfType<TrackItemPlaySoundTrigger>());
+        InjectPlayers(FindObjectsOfType<TrackItemRepairPropellersTrigger>());
+        InjectPlayers(FindObjectsOfType<TrackItemChargeBatteryTrigger>());
     }
 }
