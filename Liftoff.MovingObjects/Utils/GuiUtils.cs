@@ -34,7 +34,7 @@ internal static class GuiUtils
 
     public static void TextBoxFloat(string label, ref float value, bool enabled = true)
     {
-        GUILayout.BeginHorizontal();
+        //GUILayout.BeginHorizontal();
         GUILayout.Label(label);
 
         GUI.enabled = enabled;
@@ -48,6 +48,6 @@ internal static class GuiUtils
         }
 
         GUI.enabled = true;
-        GUILayout.EndHorizontal();
+        //GUILayout.EndHorizontal();
     }
 }

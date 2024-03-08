@@ -42,6 +42,9 @@ internal  sealed class AnimationPlayer : MonoBehaviour
 
     private IEnumerator PlayAnimation()
     {
+        if (options.animationWarmupDelay > 0)
+            yield return new WaitForSeconds(options.animationWarmupDelay);
+
         for (var i = 0; i < _stepsCached.Length; i++)
         {
             var step = _stepsCached[i];

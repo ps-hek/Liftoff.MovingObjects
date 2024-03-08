@@ -54,6 +54,7 @@ public class AnimationEditorWindow : MonoBehaviour
     {
         if (_blueprint == null)
             return;
+
         CalculateScaling();
 
         var originalMatrix = GUI.matrix;
@@ -116,6 +117,7 @@ public class AnimationEditorWindow : MonoBehaviour
 
     private void DoAnimationWindow(int _)
     {
+       
         var hasAnimation = _blueprint.mo_animationSteps is { Count: > 0 };
         _blueprint.mo_animationOptions ??= new MO_AnimationOptions();
 
@@ -157,10 +159,17 @@ public class AnimationEditorWindow : MonoBehaviour
 
         GUILayout.BeginHorizontal();
         {
+            GUILayout.BeginVertical();
             GUI.enabled = hasAnimation;
             _blueprint.mo_animationOptions.teleportToStart =
                 GUILayout.Toggle(_blueprint.mo_animationOptions.teleportToStart, "Teleport to start");
             GUI.enabled = true;
+            GUILayout.EndVertical();
+
+
+            GUILayout.BeginVertical();
+            GuiUtils.TextBoxFloat("Warmup:", ref _blueprint.mo_animationOptions.animationWarmupDelay, hasAnimation);
+            GUILayout.EndVertical();
         }
         GUILayout.EndHorizontal();
 

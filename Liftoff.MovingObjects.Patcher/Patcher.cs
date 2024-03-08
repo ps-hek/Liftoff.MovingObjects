@@ -68,6 +68,8 @@ namespace Liftoff.MovingObjects.Patcher
                 assembly.MainModule.ImportReference(typeof(float)));
             AddSerializableField(assembly, animationOptsType, "simulatePhysicsWarmupDelay",
                 assembly.MainModule.ImportReference(typeof(float)));
+            AddSerializableField(assembly, animationOptsType, "animationWarmupDelay",
+                assembly.MainModule.ImportReference(typeof(float)));
 
             var animationType = AddSerializableType(assembly, "MO_Animation");
             AddSerializableField(assembly, animationType, "delay", assembly.MainModule.ImportReference(typeof(float)));
