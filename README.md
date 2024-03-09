@@ -36,3 +36,4 @@ Allow to place objects from the Blueprint map on any map
 ## Maps
 
 * [MOD_PSHEK_FRPV_BANDO-NICE_1](https://steamcommunity.com/sharedfiles/filedetails/?id=3174317892)
+* [Honkey Kong (3 Laps)](https://steamcommunity.com/sharedfiles/filedetails/?id=3175684498)
