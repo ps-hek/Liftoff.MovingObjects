@@ -17,7 +17,7 @@ internal static class GuiUtils
         element.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
     }
 
-    public static void ConvertToFloatField(TextField field, float defaultValue, Action<float> valueCallback)
+    public static void ConvertToFloatField(TextField field, Action<float> valueCallback, float defaultValue = 0f)
     {
         Debug.LogWarning($"{field} {defaultValue}");
         ;

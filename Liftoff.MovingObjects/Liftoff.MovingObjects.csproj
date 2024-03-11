@@ -85,4 +85,8 @@
       <LastGenOutput>UI.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
+  
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy $(TargetPath) D:\SteamLibrary\steamapps\common\Liftoff\BepInEx\scripts" />
+  </Target>
 </Project>

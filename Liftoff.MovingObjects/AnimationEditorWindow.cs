@@ -13,6 +13,7 @@ internal class AnimationEditorWindow : MonoBehaviour
 {
     public enum Type
     {
+        None,
         Animation,
         Physics
     }
@@ -68,15 +69,15 @@ internal class AnimationEditorWindow : MonoBehaviour
             });
             RefreshGui();
         };
-        GuiUtils.ConvertToFloatField(_root.Q<TextField>("animation-warmup"), options.animationWarmupDelay,
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("animation-warmup"),
             f => options.animationWarmupDelay = f);
         _root.Q<Button>("animation-play").clicked += OnPlayAnimationClicked;
 
-        GuiUtils.ConvertToFloatField(_root.Q<TextField>("physics-time"), options.simulatePhysicsTime,
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("physics-time"),
             f => options.simulatePhysicsTime = f);
-        GuiUtils.ConvertToFloatField(_root.Q<TextField>("physics-delay"), options.simulatePhysicsDelay,
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("physics-delay"),
             f => options.simulatePhysicsDelay = f);
-        GuiUtils.ConvertToFloatField(_root.Q<TextField>("physics-warmup"), options.simulatePhysicsWarmupDelay,
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("physics-warmup"),
             f => options.simulatePhysicsWarmupDelay = f);
         _root.Q<Button>("physics-play").clicked += OnPlayPhysicsClicked;
 
@@ -103,7 +104,7 @@ internal class AnimationEditorWindow : MonoBehaviour
 
     private void RefreshGui()
     {
-        var currentType = options.simulatePhysics ? Type.Physics : Type.Animation;
+        var currentType = options == null ? Type.None : options.simulatePhysics ? Type.Physics : Type.Animation;
         _root.Q<DropdownField>("type").value = currentType.ToString();
         OnSelectType(currentType);
 
@@ -131,6 +132,8 @@ internal class AnimationEditorWindow : MonoBehaviour
                 var physicsPlay = _root.Q<Button>("physics-play");
                 physicsPlay.text = _tempPhysicsObject == null ? PlayButtonText : StopButtonText;
                 break;
+            case Type.None:
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(currentType), currentType, null);
         }
@@ -145,8 +148,8 @@ internal class AnimationEditorWindow : MonoBehaviour
         item.Q<TextField>("time").value = GuiUtils.FloatToString(step.time);
         item.Q<TextField>("delay").value = GuiUtils.FloatToString(step.delay);
 
-        GuiUtils.ConvertToFloatField(item.Q<TextField>("time"), step.time, f => step.time = f);
-        GuiUtils.ConvertToFloatField(item.Q<TextField>("delay"), step.delay, f => step.delay = f);
+        GuiUtils.ConvertToFloatField(item.Q<TextField>("time"), f => step.time = f, step.time);
+        GuiUtils.ConvertToFloatField(item.Q<TextField>("delay"), f => step.delay = f, step.delay);
 
         item.Q<Button>("delete").clicked += () =>
         {
@@ -163,13 +166,25 @@ internal class AnimationEditorWindow : MonoBehaviour
 
         switch (type)
         {
+            case Type.None:
+                _blueprint.mo_animationOptions = null;
+                _blueprint.mo_animationSteps = null;
+                GuiUtils.SetVisible(animationBox, false);
+                GuiUtils.SetVisible(physicsBox, false);
+                break;
             case Type.Animation:
+                _blueprint.mo_animationOptions ??= new MO_AnimationOptions();
+                _blueprint.mo_animationSteps ??= new List<MO_Animation>();
+
                 GuiUtils.SetVisible(animationBox, true);
                 GuiUtils.SetVisible(physicsBox, false);
                 _blueprint.mo_animationOptions.simulatePhysics = false;
                 StopSimulation();
                 break;
             case Type.Physics:
+                _blueprint.mo_animationOptions ??= new MO_AnimationOptions();
+                _blueprint.mo_animationSteps ??= new List<MO_Animation>();
+
                 GuiUtils.SetVisible(animationBox, false);
                 GuiUtils.SetVisible(physicsBox, true);
                 _blueprint.mo_animationOptions.simulatePhysics = true;
@@ -186,8 +201,6 @@ internal class AnimationEditorWindow : MonoBehaviour
 
         _item = item;
         _blueprint = ReflectionUtils.GetPrivateFieldValueByType<TrackBlueprint>(item);
-        _blueprint.mo_animationOptions ??= new MO_AnimationOptions();
-        _blueprint.mo_animationSteps ??= new List<MO_Animation>();
         Invoke("RefreshGui", 0);
 
         Log.LogInfo(
