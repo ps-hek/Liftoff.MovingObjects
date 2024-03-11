@@ -1,0 +1,89 @@
+:root {
+  --primary: rgb(244, 241, 244);
+  --active: rgb(233, 166, 109);
+}
+
+
+Label {
+    color: black;
+}
+
+Button {
+    color: black;
+    background-color: var(--primary);
+    border-width: 0;
+    padding: 6px;
+}
+
+Button:hover {
+    color: white;
+    background-color: var(--active);
+    -unity-font-style: bold;
+}
+
+.background {
+    background-color: white;
+    border-radius: 6px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: var(--primary);
+    border-right-color: var(--primary);
+    border-top-color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.unity-base-popup-field__text {
+    color: black;
+}
+
+.unity-base-text-field__input {
+    flex-direction: row;
+    background-color: var(--primary);
+    color: black;
+    border-width: 0;
+    padding: 6px;
+}
+
+.unity-base-popup-field__input {
+    flex-direction: row;
+    background-color: var(--primary);
+    color: black;
+    border-width: 0;
+    padding: 6px;
+}
+
+.small-input .unity-base-text-field__inpu {
+    padding: 1px;
+}
+
+.unity-base-field__label {
+    min-width: 100px;
+}
+
+.compact-field > .unity-base-field__label {
+    min-width: 0;
+}
+
+.compact-field > .unity-base-text-field__input {
+    padding: 3px;
+}
+
+.unity-list-view__footer {
+    background-color: var(--primary);
+    border-width: 0;
+}
+
+Toggle .unity-toggle__checkmark {
+    background-color: white;
+    background-image: none;
+    border-color: var(--primary);
+    border-radius: 7px;
+    border-width: 2px;
+}
+
+Toggle:checked .unity-toggle__checkmark {
+    background-color: var(--primary);
+    background-image: url('checkbox_on.png');
+}

@@ -5,17 +5,17 @@ using UnityEngine;
 
 namespace Liftoff.MovingObjects.Player;
 
-internal  sealed class AnimationPlayer : MonoBehaviour
+internal sealed class AnimationPlayer : MonoBehaviour
 {
+    private Coroutine _animationCoroutine;
     private Vector3 _initPosition;
     private Quaternion _initRotation;
+    private Rigidbody _rigidBody;
+
+    private Step[] _stepsCached;
 
     public MO_AnimationOptions options;
     public List<MO_Animation> steps;
-    
-    private Step[] _stepsCached;
-    private Rigidbody _rigidBody;
-    private Coroutine _animationCoroutine;
 
     private void Start()
     {
@@ -71,7 +71,8 @@ internal  sealed class AnimationPlayer : MonoBehaviour
         while (elapsed < duration)
         {
             var t = elapsed / duration;
-            MoveRigidBody(Vector3.Lerp(startPosition, targetPosition, t), Quaternion.Lerp(startRotation, targetRotation, t));
+            MoveRigidBody(Vector3.Lerp(startPosition, targetPosition, t),
+                Quaternion.Lerp(startRotation, targetRotation, t));
             elapsed += Time.deltaTime;
             yield return null;
         }

@@ -1,13 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using Liftoff.MovingObjects.Player;
 using Liftoff.MovingObjects.Utils;
 using UnityEngine;
-using UnityEngine.EventSystems;
+using UnityEngine.UIElements;
 
 namespace Liftoff.MovingObjects;
 
@@ -17,16 +16,27 @@ public sealed class Plugin : BaseUnityPlugin
     private static readonly ManualLogSource Log =
         BepInEx.Logging.Logger.CreateLogSource($"{PluginInfo.PLUGIN_NAME}.{nameof(Plugin)}");
 
+    private static AssetBundle _assetBundle;
+    private static AnimationEditorWindow.Assets _assets;
+
     private Harmony _harmony;
 
     private void Awake()
     {
         Log.LogWarning($"Modification {PluginInfo.PLUGIN_NAME} {PluginInfo.PLUGIN_VERSION} loaded");
+        _assetBundle = AssetBundle.LoadFromMemory(UI.LiftoffUI);
+        _assets = new AnimationEditorWindow.Assets
+        {
+            VisualTreeAsset = _assetBundle.LoadAsset<VisualTreeAsset>("Assets/Liftoff.MovingObject/AnimationEditorWindow.uxml"),
+            AnimationTemplateAsset = _assetBundle.LoadAsset<VisualTreeAsset>("Assets/Liftoff.MovingObject/AnimationStepTemplate.uxml"),
+            PanelSettings = _assetBundle.LoadAsset<PanelSettings>("Assets/Liftoff.MovingObject/AnimationEditorWindowPanelSettings.asset")
+        };
         _harmony = Harmony.CreateAndPatchAll(typeof(Plugin));
     }
 
     private void OnDestroy()
     {
+        _assetBundle.Unload(true);
         _harmony?.UnpatchSelf();
     }
 
@@ -39,11 +49,11 @@ public sealed class Plugin : BaseUnityPlugin
             ReflectionUtils.GetPrivateFieldValue<TrackEditorEditWindow>(trackMenu, "trackBuilderPanel");
 
         var animation = trackBuilderPanel.detailPane.gameObject.AddComponent<AnimationEditorWindow>();
+        animation.assets = _assets;
 
         trackBuilderPanel.onItemSelected += animation.OnItemSelected;
         trackBuilderPanel.onItemSelectionCleared += animation.OnItemCleared;
     }
-
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(TrackEditorEditWindow), "AtLeastOneItemAvailable", typeof(TrackItemCategory))]
@@ -53,17 +63,10 @@ public sealed class Plugin : BaseUnityPlugin
             __result = true;
     }
 
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(EventSystem), "IsPointerOverGameObject", typeof(int))]
-    private static void OnIsPointerOverGameObject(ref bool __result)
-    {
-        if (!__result && GuiUtils.IsGuiLocked())
-            __result = true;
-    }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(FlightManager), "ResetDroneRoutine")]
-    static IEnumerator ResetDroneRoutine(IEnumerator __result)
+    private static IEnumerator ResetDroneRoutine(IEnumerator __result)
     {
         Log.LogInfo("Drone reset start");
 
@@ -104,6 +107,7 @@ public sealed class Plugin : BaseUnityPlugin
             OnGameModeInitialized();
             __instance.onGameModeInitialized -= Callback;
         }
+
         __instance.onGameModeInitialized += Callback;
     }
 

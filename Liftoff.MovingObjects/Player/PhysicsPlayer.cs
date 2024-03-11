@@ -5,10 +5,10 @@ namespace Liftoff.MovingObjects.Player;
 
 internal sealed class PhysicsPlayer : MonoBehaviour
 {
-    private Rigidbody _rigidBody;
     private Vector3 _initPosition;
     private Quaternion _initRotation;
     private Coroutine _physicsCoroutine;
+    private Rigidbody _rigidBody;
 
     public MO_AnimationOptions options;
 
@@ -56,7 +56,7 @@ internal sealed class PhysicsPlayer : MonoBehaviour
 
     public void Restart()
     {
-        if (_physicsCoroutine !=null)
+        if (_physicsCoroutine != null)
             StopCoroutine(_physicsCoroutine);
 
         ResetPosition();

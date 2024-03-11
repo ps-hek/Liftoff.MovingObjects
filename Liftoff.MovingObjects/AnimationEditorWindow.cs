@@ -1,69 +1,232 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using BepInEx.Logging;
 using Liftoff.MovingObjects.Player;
 using Liftoff.MovingObjects.Utils;
 using UnityEngine;
+using UnityEngine.UIElements;
 using Logger = BepInEx.Logging.Logger;
 
 namespace Liftoff.MovingObjects;
 
-public class AnimationEditorWindow : MonoBehaviour
+internal class AnimationEditorWindow : MonoBehaviour
 {
-    private const int BasePadding = 25;
+    public enum Type
+    {
+        Animation,
+        Physics
+    }
+
+    private const string PlayButtonText = "Play";
+    private const string StopButtonText = "Stop";
 
     private static readonly ManualLogSource Log =
         Logger.CreateLogSource($"{PluginInfo.PLUGIN_NAME}.{nameof(AnimationEditorWindow)}");
 
-    private static readonly Vector2 BaseResolution = new(3840, 2160);
-    private static readonly Vector2 BaseSize = new(600, 940);
-
-
     private TrackBlueprint _blueprint;
-
-    private Matrix4x4 _cachedMatrix;
     private MonoBehaviour _item;
-    private Vector2Int _lastScreenSize;
-
-    private Vector2 _scrollPosition;
-
+    private VisualElement _root;
     private GameObject _tempAnimationObject;
+
     private GameObject _tempPhysicsObject;
 
-    private Rect _windowRect;
+    private UIDocument _uiDocument;
+
+    public Assets assets;
+
+
+    private MO_AnimationOptions options => _blueprint.mo_animationOptions;
+    private List<MO_Animation> steps => _blueprint.mo_animationSteps;
 
     private void Awake()
     {
-        _windowRect = new Rect(BaseResolution.x - BaseSize.x - BasePadding, BaseResolution.y / 2f - BaseSize.y / 2,
-            BaseSize.x, BaseSize.y);
-        CalculateScaling();
+        _uiDocument = gameObject.AddComponent<UIDocument>();
+        _uiDocument.visualTreeAsset = assets.VisualTreeAsset;
+        _uiDocument.panelSettings = assets.PanelSettings;
+        _uiDocument.rootVisualElement.StretchToParentSize();
     }
 
-    private void CalculateScaling()
+    private void OnEnable()
     {
-        if (_lastScreenSize.x == Screen.width && _lastScreenSize.y == Screen.height)
-            return;
-        var xRatio = Screen.width / BaseResolution.x;
-        var yRatio = Screen.height / BaseResolution.y;
+        Log.LogInfo("OnEnable");
 
-        _cachedMatrix = Matrix4x4.TRS(new Vector3(0, 0, 0), Quaternion.identity, new Vector3(xRatio, yRatio, 1));
-        _lastScreenSize = new Vector2Int(Screen.width, Screen.height);
+        _root = _uiDocument.rootVisualElement;
+
+        _root.Q<DropdownField>("type")
+            .RegisterValueChangedCallback(evt => OnSelectType(Enum.Parse<Type>(evt.newValue, true)));
+
+        _root.Q<Toggle>("animation-teleport-to-start")
+            .RegisterValueChangedCallback(evt => options.teleportToStart = evt.newValue);
+        _root.Q<Button>("animation-add").clicked += () =>
+        {
+            steps.Add(new MO_Animation
+            {
+                delay = 0f,
+                time = 1f,
+                position = new SerializableVector3(_item.transform.position),
+                rotation = new SerializableVector3(_item.transform.rotation.eulerAngles)
+            });
+            RefreshGui();
+        };
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("animation-warmup"), options.animationWarmupDelay,
+            f => options.animationWarmupDelay = f);
+        _root.Q<Button>("animation-play").clicked += OnPlayAnimationClicked;
+
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("physics-time"), options.simulatePhysicsTime,
+            f => options.simulatePhysicsTime = f);
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("physics-delay"), options.simulatePhysicsDelay,
+            f => options.simulatePhysicsDelay = f);
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("physics-warmup"), options.simulatePhysicsWarmupDelay,
+            f => options.simulatePhysicsWarmupDelay = f);
+        _root.Q<Button>("physics-play").clicked += OnPlayPhysicsClicked;
+
+        RefreshGui();
     }
 
-    private void OnGUI()
+    private void OnPlayAnimationClicked()
     {
-        if (_blueprint == null)
-            return;
+        if (_tempAnimationObject == null)
+            StartAnimation();
+        else
+            StopAnimation();
+        RefreshGui();
+    }
 
-        CalculateScaling();
+    private void OnPlayPhysicsClicked()
+    {
+        if (_tempPhysicsObject == null)
+            StartSimulation();
+        else
+            StopSimulation();
+        RefreshGui();
+    }
 
-        var originalMatrix = GUI.matrix;
-        GUI.matrix = _cachedMatrix;
+    private void RefreshGui()
+    {
+        var currentType = options.simulatePhysics ? Type.Physics : Type.Animation;
+        _root.Q<DropdownField>("type").value = currentType.ToString();
+        OnSelectType(currentType);
 
-        GUI.backgroundColor = Color.black;
-        GUI.Window(0, _windowRect, DoAnimationWindow, "Animation");
+        switch (currentType)
+        {
+            case Type.Animation:
+                _root.Q<Toggle>("animation-teleport-to-start").value = options.teleportToStart;
+                _root.Q<TextField>("animation-warmup").value = GuiUtils.FloatToString(options.animationWarmupDelay);
 
-        GUI.matrix = originalMatrix;
+                GuiUtils.SetVisible(_root.Q<Label>("animation-steps-empty"), steps.Count == 0);
+
+                var animationPlay = _root.Q<Button>("animation-play");
+                animationPlay.text = _tempAnimationObject == null ? PlayButtonText : StopButtonText;
+
+                var stepsContainer = _root.Q<ScrollView>("animation-steps").contentContainer;
+                stepsContainer.Clear();
+                foreach (var step in steps)
+                    AddStepElement(stepsContainer, step);
+                break;
+            case Type.Physics:
+                _root.Q<TextField>("physics-time").value = GuiUtils.FloatToString(options.simulatePhysicsTime);
+                _root.Q<TextField>("physics-delay").value = GuiUtils.FloatToString(options.simulatePhysicsDelay);
+                _root.Q<TextField>("physics-warmup").value = GuiUtils.FloatToString(options.simulatePhysicsWarmupDelay);
+
+                var physicsPlay = _root.Q<Button>("physics-play");
+                physicsPlay.text = _tempPhysicsObject == null ? PlayButtonText : StopButtonText;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(currentType), currentType, null);
+        }
+    }
+
+    private void AddStepElement(VisualElement stepsContainer, MO_Animation step)
+    {
+        var item = assets.AnimationTemplateAsset.Instantiate();
+
+        item.Q<Label>("position").text = GuiUtils.VectorToString(step.position);
+        item.Q<Label>("rotation").text = GuiUtils.VectorToString(step.rotation);
+        item.Q<TextField>("time").value = GuiUtils.FloatToString(step.time);
+        item.Q<TextField>("delay").value = GuiUtils.FloatToString(step.delay);
+
+        GuiUtils.ConvertToFloatField(item.Q<TextField>("time"), step.time, f => step.time = f);
+        GuiUtils.ConvertToFloatField(item.Q<TextField>("delay"), step.delay, f => step.delay = f);
+
+        item.Q<Button>("delete").clicked += () =>
+        {
+            steps.Remove(step);
+            RefreshGui();
+        };
+        stepsContainer.Add(item);
+    }
+
+    private void OnSelectType(Type type)
+    {
+        var animationBox = _root.Q<GroupBox>("animation-box");
+        var physicsBox = _root.Q<GroupBox>("physics-box");
+
+        switch (type)
+        {
+            case Type.Animation:
+                GuiUtils.SetVisible(animationBox, true);
+                GuiUtils.SetVisible(physicsBox, false);
+                _blueprint.mo_animationOptions.simulatePhysics = false;
+                StopSimulation();
+                break;
+            case Type.Physics:
+                GuiUtils.SetVisible(animationBox, false);
+                GuiUtils.SetVisible(physicsBox, true);
+                _blueprint.mo_animationOptions.simulatePhysics = true;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+    }
+
+    public void OnItemSelected(MonoBehaviour item)
+    {
+        StopAnimation();
+        StopSimulation();
+
+        _item = item;
+        _blueprint = ReflectionUtils.GetPrivateFieldValueByType<TrackBlueprint>(item);
+        _blueprint.mo_animationOptions ??= new MO_AnimationOptions();
+        _blueprint.mo_animationSteps ??= new List<MO_Animation>();
+        Invoke("RefreshGui", 0);
+
+        Log.LogInfo(
+            $"Item selected: {_blueprint.itemID}/{_blueprint.instanceID}, {_item.gameObject.transform.position}");
+    }
+
+    public void OnItemCleared()
+    {
+        StopAnimation();
+        StopSimulation();
+        _blueprint = null;
+        Log.LogInfo("Item unselected");
+    }
+
+    private void OnDestroy()
+    {
+        StopAnimation();
+        StopAnimation();
+    }
+
+    private void StartAnimation()
+    {
+        Log.LogWarning($"Animation start: {_item.gameObject} at {_item.transform.position}");
+
+        _tempAnimationObject = Instantiate(_item.gameObject);
+        _tempAnimationObject.transform.SetPositionAndRotation(_item.transform.position, _item.transform.rotation);
+
+        var player = _tempAnimationObject.AddComponent<AnimationPlayer>();
+        player.steps = new List<MO_Animation>(_blueprint.mo_animationSteps);
+        player.options = _blueprint.mo_animationOptions;
+    }
+
+    private void StopAnimation()
+    {
+        if (_tempAnimationObject != null)
+        {
+            Destroy(_tempAnimationObject);
+            _tempAnimationObject = null;
+        }
     }
 
     private void StartSimulation()
@@ -94,213 +257,10 @@ public class AnimationEditorWindow : MonoBehaviour
         }
     }
 
-    private void StartAnimation()
+    public struct Assets
     {
-        Log.LogWarning($"Animation start: {_item.gameObject} at {_item.transform.position}");
-
-        _tempAnimationObject = Instantiate(_item.gameObject);
-        _tempAnimationObject.transform.SetPositionAndRotation(_item.transform.position, _item.transform.rotation);
-
-        var player = _tempAnimationObject.AddComponent<AnimationPlayer>();
-        player.steps = new List<MO_Animation>(_blueprint.mo_animationSteps);
-        player.options = _blueprint.mo_animationOptions;
-    }
-
-    private void StopAnimation()
-    {
-        if (_tempAnimationObject != null)
-        {
-            Destroy(_tempAnimationObject);
-            _tempAnimationObject = null;
-        }
-    }
-
-    private void DoAnimationWindow(int _)
-    {
-       
-        var hasAnimation = _blueprint.mo_animationSteps is { Count: > 0 };
-        _blueprint.mo_animationOptions ??= new MO_AnimationOptions();
-
-        GUILayout.BeginHorizontal();
-        {
-            GUI.enabled = !_blueprint.mo_animationOptions.simulatePhysics;
-            GUILayout.BeginVertical();
-            if (GUILayout.Button("Add step"))
-            {
-                _blueprint.mo_animationSteps ??= new List<MO_Animation>();
-
-                _blueprint.mo_animationSteps.Add(new MO_Animation
-                {
-                    delay = 0f,
-                    time = 1f,
-                    position = new SerializableVector3(_item.transform.position),
-                    rotation = new SerializableVector3(_item.transform.rotation.eulerAngles)
-                });
-            }
-
-            GUILayout.EndVertical();
-
-            GUILayout.BeginVertical();
-            GUI.enabled = hasAnimation && GUI.enabled;
-            if (GUILayout.Button(_tempAnimationObject == null ? "Play" : "Stop"))
-            {
-                if (_tempAnimationObject == null)
-                    StartAnimation();
-                else
-                    StopAnimation();
-            }
-
-            GUI.enabled = true;
-            GUILayout.EndVertical();
-
-            GUI.enabled = true;
-        }
-        GUILayout.EndHorizontal();
-
-        GUILayout.BeginHorizontal();
-        {
-            GUILayout.BeginVertical();
-            GUI.enabled = hasAnimation;
-            _blueprint.mo_animationOptions.teleportToStart =
-                GUILayout.Toggle(_blueprint.mo_animationOptions.teleportToStart, "Teleport to start");
-            GUI.enabled = true;
-            GUILayout.EndVertical();
-
-
-            GUILayout.BeginVertical();
-            GuiUtils.TextBoxFloat("Warmup:", ref _blueprint.mo_animationOptions.animationWarmupDelay, hasAnimation);
-            GUILayout.EndVertical();
-        }
-        GUILayout.EndHorizontal();
-
-        GUILayout.BeginHorizontal();
-        {
-            GUILayout.BeginVertical();
-            _blueprint.mo_animationOptions.simulatePhysics =
-                GUILayout.Toggle(_blueprint.mo_animationOptions.simulatePhysics, "Simulate physics");
-            GUILayout.EndVertical();
-
-            GUILayout.BeginVertical();
-            GuiUtils.TextBoxFloat("Time:", ref _blueprint.mo_animationOptions.simulatePhysicsTime,
-                _blueprint.mo_animationOptions.simulatePhysics);
-            GUILayout.EndVertical();
-
-            GUILayout.BeginVertical();
-            GuiUtils.TextBoxFloat("Delay:", ref _blueprint.mo_animationOptions.simulatePhysicsDelay,
-                _blueprint.mo_animationOptions.simulatePhysics);
-            GUILayout.EndVertical();
-
-            GUILayout.BeginVertical();
-            GuiUtils.TextBoxFloat("Warmup:", ref _blueprint.mo_animationOptions.simulatePhysicsWarmupDelay,
-                _blueprint.mo_animationOptions.simulatePhysics);
-            GUILayout.EndVertical();
-
-            GUILayout.BeginVertical();
-            GUI.enabled = _blueprint.mo_animationOptions.simulatePhysics;
-            if (GUILayout.Button(_tempPhysicsObject == null ? "Simulate physics" : "Stop simulation"))
-            {
-                if (_tempPhysicsObject == null)
-                    StartSimulation();
-                else
-                    StopSimulation();
-            }
-
-            GUI.enabled = true;
-            GUILayout.EndVertical();
-        }
-        GUILayout.EndHorizontal();
-
-
-        if (!hasAnimation)
-            return;
-
-        GUILayout.BeginHorizontal();
-        _scrollPosition = GUILayout.BeginScrollView(_scrollPosition);
-
-        MO_Animation stepToDelete = null;
-        for (var i = 0; i < _blueprint.mo_animationSteps.Count; i++)
-        {
-            var step = _blueprint.mo_animationSteps[i];
-            GUILayout.BeginHorizontal();
-            {
-                GUILayout.Box($"Step {i}");
-
-
-                GUILayout.BeginVertical();
-                GUILayout.Label($"Position: {step.position.x:F3}, {step.position.y:F3}, {step.position.z:F3}");
-                GUILayout.Label($"Rotation: {step.rotation.x:F3}, {step.rotation.y:F3}, {step.rotation.z:F3}");
-                GUILayout.EndVertical();
-
-                GUILayout.BeginVertical();
-
-                GUILayout.BeginHorizontal();
-                GuiUtils.TextBoxFloat("Delay:", ref step.delay);
-                GUILayout.EndHorizontal();
-
-
-                GUILayout.BeginHorizontal();
-                GuiUtils.TextBoxFloat("Time:", ref step.time);
-                GUILayout.EndHorizontal();
-
-                GUILayout.EndVertical();
-
-
-                GUILayout.BeginVertical();
-                if (GUILayout.Button("Delete"))
-                    stepToDelete = step;
-                GUILayout.EndVertical();
-            }
-            GUILayout.EndHorizontal();
-        }
-
-        GUILayout.EndScrollView();
-
-        GUILayout.EndHorizontal();
-
-        if (stepToDelete != null)
-            _blueprint.mo_animationSteps.Remove(stepToDelete);
-    }
-
-    public void OnItemSelected(MonoBehaviour item)
-    {
-        _item = item;
-        _blueprint = ReflectionUtils.GetPrivateFieldValueByType<TrackBlueprint>(item);
-        Log.LogInfo(
-            $"Item selected: {_blueprint.itemID}/{_blueprint.instanceID}, {_item.gameObject.transform.position}");
-    }
-
-    public void OnItemCleared()
-    {
-        StopAnimation();
-        StopSimulation();
-        _blueprint = null;
-        Log.LogInfo("Item unselected");
-    }
-
-    private void OnDisable()
-    {
-        GuiUtils.Unlock();
-        StopAnimation();
-        StopSimulation();
-    }
-
-    private void OnEnable()
-    {
-        var leftTop = _cachedMatrix.MultiplyPoint3x4(new Vector3(_windowRect.x, _windowRect.y, 1));
-        var rightBottom =
-            _cachedMatrix.MultiplyPoint3x4(new Vector3(_windowRect.x + _windowRect.width,
-                _windowRect.y + _windowRect.height,
-                1));
-
-        var rect = new Rect(leftTop.x, leftTop.y, rightBottom.x - leftTop.x, rightBottom.y - leftTop.y);
-        Log.LogInfo($"Gui locked: {rect}");
-        GuiUtils.Lock(rect);
-    }
-
-    private void OnDestroy()
-    {
-        StopAnimation();
-        StopAnimation();
-        GuiUtils.Unlock();
+        public VisualTreeAsset VisualTreeAsset { get; set; }
+        public VisualTreeAsset AnimationTemplateAsset { get; set; }
+        public PanelSettings PanelSettings { get; set; }
     }
 }

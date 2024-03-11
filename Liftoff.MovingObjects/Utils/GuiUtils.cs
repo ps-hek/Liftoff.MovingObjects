@@ -1,53 +1,51 @@
 ﻿using System;
 using System.Globalization;
-using BepInEx.Logging;
 using UnityEngine;
-using Logger = BepInEx.Logging.Logger;
+using UnityEngine.UIElements;
 
 namespace Liftoff.MovingObjects.Utils;
 
 internal static class GuiUtils
 {
-    private static readonly ManualLogSource Log =
-        Logger.CreateLogSource($"{PluginInfo.PLUGIN_NAME}.{nameof(GuiUtils)}");
-
-    private static bool _guiActive;
-    private static Rect _guiRect;
-
-    public static void Unlock()
+    public static string FloatToString(float value)
     {
-        _guiActive = false;
+        return value.ToString("0.000", CultureInfo.InvariantCulture);
     }
 
-    public static void Lock(Rect rect)
+    public static void SetVisible(VisualElement element, bool visible)
     {
-        _guiActive = true;
-        _guiRect = rect;
+        element.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
     }
 
-    public static bool IsGuiLocked()
+    public static void ConvertToFloatField(TextField field, float defaultValue, Action<float> valueCallback)
     {
-        if (!_guiActive)
-            return false;
-        return GUIUtility.hotControl != 0 || _guiRect.Contains(Event.current.mousePosition);
-    }
-
-    public static void TextBoxFloat(string label, ref float value, bool enabled = true)
-    {
-        //GUILayout.BeginHorizontal();
-        GUILayout.Label(label);
-
-        GUI.enabled = enabled;
-        try
+        Debug.LogWarning($"{field} {defaultValue}");
+        ;
+        field.SetValueWithoutNotify(FloatToString(defaultValue));
+        field.RegisterCallback<KeyDownEvent>(evt =>
         {
-            value = float.Parse(GUILayout.TextField(value.ToString("F4")), CultureInfo.InvariantCulture);
-        }
-        catch (Exception ex)
-        {
-            Log.LogWarning($"Invalid {label} float value {value}, enabled: {enabled}: {ex}");
-        }
+            if (!char.IsDigit(evt.character))
+                evt.PreventDefault();
+        });
 
-        GUI.enabled = true;
-        //GUILayout.EndHorizontal();
+        field.RegisterValueChangedCallback(evt =>
+        {
+            if (!float.TryParse(evt.newValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
+            {
+                field.SetValueWithoutNotify(evt.previousValue);
+                evt.PreventDefault();
+                return;
+            }
+
+            var strFloat = FloatToString(value);
+            if (strFloat != evt.newValue)
+                field.SetValueWithoutNotify(strFloat);
+            valueCallback(value);
+        });
+    }
+
+    public static string VectorToString(SerializableVector3 vec)
+    {
+        return $"{FloatToString(vec.x)}, {FloatToString(vec.y)}, {FloatToString(vec.z)}";
     }
 }
