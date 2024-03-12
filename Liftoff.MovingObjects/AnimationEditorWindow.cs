@@ -4,8 +4,11 @@ using BepInEx.Logging;
 using Liftoff.MovingObjects.Player;
 using Liftoff.MovingObjects.Utils;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.UIElements;
+using Button = UnityEngine.UIElements.Button;
 using Logger = BepInEx.Logging.Logger;
+using Toggle = UnityEngine.UIElements.Toggle;
 
 namespace Liftoff.MovingObjects;
 
@@ -35,6 +38,11 @@ internal class AnimationEditorWindow : MonoBehaviour
 
     public Assets assets;
 
+    private MO_TriggerOptions trigger
+    {
+        get => _blueprint.mo_triggerOptions;
+        set => _blueprint.mo_triggerOptions = value;
+    }
 
     private MO_AnimationOptions options => _blueprint.mo_animationOptions;
     private List<MO_Animation> steps => _blueprint.mo_animationSteps;
@@ -49,13 +57,26 @@ internal class AnimationEditorWindow : MonoBehaviour
 
     private void OnEnable()
     {
-        Log.LogInfo("OnEnable");
+        // Dirty hack for add focus support
+        GameObject.Find("AnimationEditorWindowPanelSettings").AddComponent<InputField>().interactable = false;
 
         _root = _uiDocument.rootVisualElement;
 
+        _root.Q<Toggle>("trigger-enabled")
+            .RegisterValueChangedCallback(evt =>
+            {
+                if (!evt.newValue)
+                    trigger = null;
+                else if (trigger == null)
+                    trigger = new MO_TriggerOptions();
+                RefreshGui();
+            });
+
+        _root.Q<TextField>("trigger-name").RegisterValueChangedCallback(evt => trigger.triggerName = evt.newValue);
+        _root.Q<TextField>("trigger-target").RegisterValueChangedCallback(evt => trigger.triggerTarget = evt.newValue);
+
         _root.Q<DropdownField>("type")
             .RegisterValueChangedCallback(evt => OnSelectType(Enum.Parse<Type>(evt.newValue, true)));
-
         _root.Q<Toggle>("animation-teleport-to-start")
             .RegisterValueChangedCallback(evt => options.teleportToStart = evt.newValue);
         _root.Q<Button>("animation-add").clicked += () =>
@@ -71,6 +92,8 @@ internal class AnimationEditorWindow : MonoBehaviour
         };
         GuiUtils.ConvertToFloatField(_root.Q<TextField>("animation-warmup"),
             f => options.animationWarmupDelay = f);
+        GuiUtils.ConvertToIntField(_root.Q<TextField>("animation-repeats"),
+            i => options.animationRepeats = i);
         _root.Q<Button>("animation-play").clicked += OnPlayAnimationClicked;
 
         GuiUtils.ConvertToFloatField(_root.Q<TextField>("physics-time"),
@@ -104,15 +127,35 @@ internal class AnimationEditorWindow : MonoBehaviour
 
     private void RefreshGui()
     {
+        if (_blueprint == null)
+            return;
+
         var currentType = options == null ? Type.None : options.simulatePhysics ? Type.Physics : Type.Animation;
         _root.Q<DropdownField>("type").value = currentType.ToString();
         OnSelectType(currentType);
+
+        var hasTrigger = trigger != null;
+        _root.Q<Toggle>("trigger-enabled").value = hasTrigger;
+        GuiUtils.SetVisible(_root.Q<GroupBox>("trigger-box"), hasTrigger);
+        if (hasTrigger)
+        {
+            var triggerName = _root.Q<TextField>("trigger-name");
+            triggerName.value = trigger.triggerName;
+
+            var triggerTarget = _root.Q<TextField>("trigger-target");
+            triggerTarget.value = trigger.triggerTarget;
+
+            var isCheckpoint = _blueprint.itemID.StartsWith("Checkpoint");
+            GuiUtils.SetVisible(triggerName, !isCheckpoint);
+            GuiUtils.SetVisible(triggerTarget, isCheckpoint);
+        }
 
         switch (currentType)
         {
             case Type.Animation:
                 _root.Q<Toggle>("animation-teleport-to-start").value = options.teleportToStart;
                 _root.Q<TextField>("animation-warmup").value = GuiUtils.FloatToString(options.animationWarmupDelay);
+                _root.Q<TextField>("animation-repeats").value = options.animationRepeats.ToString();
 
                 GuiUtils.SetVisible(_root.Q<Label>("animation-steps-empty"), steps.Count == 0);
 
@@ -268,6 +311,12 @@ internal class AnimationEditorWindow : MonoBehaviour
             Destroy(_tempPhysicsObject);
             _tempPhysicsObject = null;
         }
+    }
+
+    internal static class SharedState
+    {
+        public static bool PlacementsUtilsVisible { get; set; } = false;
+        public static float GridRound { get; set; } = 0.5f;
     }
 
     public struct Assets

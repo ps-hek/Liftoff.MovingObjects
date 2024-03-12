@@ -16,6 +16,7 @@ internal sealed class AnimationPlayer : MonoBehaviour
 
     public MO_AnimationOptions options;
     public List<MO_Animation> steps;
+    public bool waitForTrigger;
 
     private void Start()
     {
@@ -26,7 +27,8 @@ internal sealed class AnimationPlayer : MonoBehaviour
         _initPosition = transform.position;
         _initRotation = transform.rotation;
 
-        StartAnimationLoop();
+        if (!waitForTrigger)
+            StartAnimationLoop();
     }
 
     private void StartAnimationLoop()
@@ -36,7 +38,7 @@ internal sealed class AnimationPlayer : MonoBehaviour
 
     private IEnumerator AnimationLoop()
     {
-        while (true)
+        for (var i = 0; options.animationRepeats == 0 || i < options.animationRepeats; i++)
             yield return PlayAnimation();
     }
 
@@ -87,14 +89,22 @@ internal sealed class AnimationPlayer : MonoBehaviour
         _rigidBody.MoveRotation(targetRotation);
     }
 
-    public void Restart()
+    public void Restart(bool triggered = false)
     {
-        StopCoroutine(_animationCoroutine);
+        if (_animationCoroutine != null)
+            StopCoroutine(_animationCoroutine);
 
         _rigidBody.position = _initPosition;
         _rigidBody.rotation = _initRotation;
 
+        if (waitForTrigger && !triggered)
+            return;
         StartAnimationLoop();
+    }
+
+    public void Trigger()
+    {
+        Restart(true);
     }
 
     private struct Step

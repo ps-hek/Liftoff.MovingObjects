@@ -1,0 +1,14 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/Liftoff.MovingObject/AnimationEditorWindow.uss?fileID=7433441132597879392&amp;guid=9858e975b473c09409bec7ce3698256a&amp;type=3#AnimationEditorWindow" />
+    <ui:VisualElement picking-mode="Ignore" style="flex-direction: column; width: 100%; height: 100%;  align-items: center; ">
+        <ui:VisualElement class="background" style="margin-top: 1%; padding-left: 1%; padding-right: 1%; padding-top: 1%; padding-bottom: 1%; min-width: 20%; max-width: none; margin-right: 0; justify-content: flex-start; align-items: stretch; position: relative; margin-left: 0; margin-bottom: 0;">
+            <ui:VisualElement name="placement-section">
+                <ui:Label text="Placement utils" display-tooltip-when-elided="true" style="-unity-text-align: upper-center; font-size: 16px; -unity-font-style: bold;" />
+                <ui:VisualElement style="align-items: stretch; flex-direction: row; min-width: auto; min-height: auto;">
+                    <ui:TextField picking-mode="Ignore" label="Grid:" name="grid-align-value" max-length="16" text="0.500" style="justify-content: flex-start; align-items: stretch; max-height: none; min-width: auto; max-width: none; width: 80%;" />
+                    <ui:Button text="Align" display-tooltip-when-elided="true" name="grid-align" style="width: 20%;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

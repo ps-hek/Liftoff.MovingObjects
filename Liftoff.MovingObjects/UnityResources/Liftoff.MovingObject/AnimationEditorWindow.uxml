@@ -1,32 +1,48 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <Style src="project://database/Assets/Liftoff.MovingObject/AnimationEditorWindow.uss?fileID=7433441132597879392&amp;guid=9858e975b473c09409bec7ce3698256a&amp;type=3#AnimationEditorWindow" />
     <ui:VisualElement picking-mode="Ignore" style="flex-direction: row-reverse;">
-        <ui:VisualElement class="background" style="margin-top: 8%; padding-left: 1%; padding-right: 1%; padding-top: 1%; padding-bottom: 1%; min-width: 17%; max-width: 17%; margin-right: 0.5%;">
-            <ui:VisualElement style="align-items: stretch; flex-direction: column;">
-                <ui:DropdownField label="Type:" index="0" choices="Animation, Physics" name="type" />
-                <ui:GroupBox name="animation-box" style="margin-left: 0; margin-right: 0; margin-top: 0; margin-bottom: 0; padding-left: 0; padding-top: 0; padding-bottom: 1%;">
-                    <ui:Label text="Animation settings:" display-tooltip-when-elided="true" style="-unity-font-style: bold; font-size: 14px;" />
-                    <ui:Toggle label="Teleport to start" name="animation-teleport-to-start" value="false" focusable="false" style="background-image: none;" />
-                    <ui:TextField picking-mode="Ignore" label="Warmup:" text="0" name="animation-warmup" max-length="16" style="justify-content: flex-start; align-items: stretch; max-height: none; min-width: 100%;" />
-                    <ui:VisualElement style="margin-top: 5px;">
-                        <ui:Button text="Play" display-tooltip-when-elided="true" name="animation-play" />
-                    </ui:VisualElement>
-                    <ui:VisualElement style="margin-top: 5px;">
-                        <ui:Button text="Add step" display-tooltip-when-elided="true" name="animation-add" />
-                    </ui:VisualElement>
-                    <ui:Label text="Steps:" display-tooltip-when-elided="true" style="padding-left: 6px;" />
-                    <ui:ScrollView scroll-deceleration-rate="0.135" elasticity="0,1" name="animation-steps" horizontal-scroller-visibility="Hidden" touch-scroll-type="Clamped" style="max-height: 400px;" />
-                </ui:GroupBox>
-                <ui:Label text="LIST EMPTY" display-tooltip-when-elided="true" name="animation-steps-empty" style="align-items: flex-start; -unity-text-align: upper-center; border-left-width: 1px; border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px; border-left-color: rgb(244, 241, 244); border-right-color: rgb(244, 241, 244); border-top-color: rgb(244, 241, 244); border-bottom-color: rgb(244, 241, 244); -unity-font-style: normal;" />
-                <ui:GroupBox name="physics-box" style="margin-left: 0; margin-right: 0; margin-top: 0; padding-left: 0; padding-top: 0; padding-bottom: 0;">
-                    <ui:Label text="Physics settings:" display-tooltip-when-elided="true" style="-unity-font-style: bold; font-size: 14px;" />
-                    <ui:TextField picking-mode="Ignore" label="Time:" text="1" name="physics-time" max-length="16" is-delayed="false" style="min-width: 100%;" />
-                    <ui:TextField picking-mode="Ignore" label="Delay:" text="0" name="physics-delay" max-length="16" style="height: 26px; min-width: 100%;" />
-                    <ui:TextField picking-mode="Ignore" label="Warmup:" text="0" name="physics-warmup" max-length="16" style="justify-content: flex-start; align-items: stretch; max-height: none; min-width: 100%;" />
-                    <ui:VisualElement style="margin-top: 5px;">
-                        <ui:Button text="Play" display-tooltip-when-elided="true" name="physics-play" />
-                    </ui:VisualElement>
-                </ui:GroupBox>
+        <ui:VisualElement class="background" style="margin-top: 10%; padding-left: 1%; padding-right: 1%; padding-top: 1%; padding-bottom: 1%; min-width: 17%; max-width: 17%; margin-right: 0.5%;">
+            <ui:VisualElement name="trigger-section">
+                <ui:Label text="Trigger" display-tooltip-when-elided="true" style="-unity-text-align: upper-center; font-size: 16px; -unity-font-style: bold;" />
+                <ui:VisualElement style="align-items: stretch; flex-direction: column; min-width: auto; min-height: auto;">
+                    <ui:GroupBox style="flex-direction: row; min-height: auto; min-width: auto; padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0; margin-left: 0; margin-right: 0; margin-top: 0; margin-bottom: 0;">
+                        <ui:Toggle label="Enabled" name="trigger-enabled" value="false" focusable="false" style="background-image: none;" />
+                    </ui:GroupBox>
+                    <ui:GroupBox name="trigger-box" style="flex-direction: column; min-height: auto; min-width: auto; padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0; margin-left: 0; margin-right: 0; margin-top: 0; margin-bottom: 0;">
+                        <ui:TextField picking-mode="Ignore" label="Name:" name="trigger-name" max-length="16" style="justify-content: flex-start; align-items: stretch; max-height: none; min-width: 100%;" />
+                        <ui:TextField picking-mode="Ignore" label="Target:" name="trigger-target" max-length="16" style="justify-content: flex-start; align-items: stretch; max-height: none; min-width: 100%;" />
+                    </ui:GroupBox>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="animation-section">
+                <ui:Label text="Animation &amp; Physics" display-tooltip-when-elided="true" style="-unity-text-align: upper-center; font-size: 16px; -unity-font-style: bold;" />
+                <ui:VisualElement style="align-items: stretch; flex-direction: column;">
+                    <ui:DropdownField label="Type:" index="0" choices="None,Animation,Physics" name="type" />
+                    <ui:GroupBox name="animation-box" style="margin-left: 0; margin-right: 0; margin-top: 0; margin-bottom: 0; padding-left: 0; padding-top: 0; padding-bottom: 1%;">
+                        <ui:Label text="Animation settings:" display-tooltip-when-elided="true" style="-unity-font-style: bold; font-size: 14px;" />
+                        <ui:Toggle label="Teleport to start" name="animation-teleport-to-start" value="false" focusable="false" style="background-image: none;" />
+                        <ui:TextField picking-mode="Ignore" label="Warmup:" text="0" name="animation-warmup" max-length="16" style="justify-content: flex-start; align-items: stretch; max-height: none; min-width: 100%;" />
+                        <ui:TextField picking-mode="Ignore" label="Repeats:" text="0" name="animation-repeats" max-length="16" style="justify-content: flex-start; align-items: stretch; max-height: none; min-width: 100%;" />
+                        <ui:VisualElement style="margin-top: 5px;">
+                            <ui:Button text="Play" display-tooltip-when-elided="true" name="animation-play" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="margin-top: 5px;">
+                            <ui:Button text="Add step" display-tooltip-when-elided="true" name="animation-add" />
+                        </ui:VisualElement>
+                        <ui:Label text="Steps:" display-tooltip-when-elided="true" style="padding-left: 6px;" />
+                        <ui:ScrollView scroll-deceleration-rate="0.135" elasticity="0,1" name="animation-steps" horizontal-scroller-visibility="Hidden" touch-scroll-type="Clamped" style="max-height: 400px;" />
+                        <ui:Label text="LIST EMPTY" display-tooltip-when-elided="true" name="animation-steps-empty" style="align-items: flex-start; -unity-text-align: upper-center; border-left-width: 1px; border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px; border-left-color: rgb(244, 241, 244); border-right-color: rgb(244, 241, 244); border-top-color: rgb(244, 241, 244); border-bottom-color: rgb(244, 241, 244); -unity-font-style: normal;" />
+                    </ui:GroupBox>
+                    <ui:GroupBox name="physics-box" style="margin-left: 0; margin-right: 0; margin-top: 0; padding-left: 0; padding-top: 0; padding-bottom: 0;">
+                        <ui:Label text="Physics settings:" display-tooltip-when-elided="true" style="-unity-font-style: bold; font-size: 14px;" />
+                        <ui:TextField picking-mode="Ignore" label="Time:" text="1" name="physics-time" max-length="16" is-delayed="false" style="min-width: 100%;" />
+                        <ui:TextField picking-mode="Ignore" label="Delay:" text="0" name="physics-delay" max-length="16" style="height: 26px; min-width: 100%;" />
+                        <ui:TextField picking-mode="Ignore" label="Warmup:" text="0" name="physics-warmup" max-length="16" style="justify-content: flex-start; align-items: stretch; max-height: none; min-width: 100%;" />
+                        <ui:VisualElement style="margin-top: 5px;">
+                            <ui:Button text="Play" display-tooltip-when-elided="true" name="physics-play" />
+                        </ui:VisualElement>
+                    </ui:GroupBox>
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

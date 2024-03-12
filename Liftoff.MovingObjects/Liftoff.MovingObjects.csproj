@@ -54,6 +54,9 @@
       <HintPath>..\lib\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\lib\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>..\lib\UnityEngine.PhysicsModule.dll</HintPath>
       <Private>False</Private>
@@ -85,8 +88,4 @@
       <LastGenOutput>UI.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
-  
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy $(TargetPath) D:\SteamLibrary\steamapps\common\Liftoff\BepInEx\scripts" />
-  </Target>
 </Project>

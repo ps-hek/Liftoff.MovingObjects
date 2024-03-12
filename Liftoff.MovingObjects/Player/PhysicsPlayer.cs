@@ -11,6 +11,7 @@ internal sealed class PhysicsPlayer : MonoBehaviour
     private Rigidbody _rigidBody;
 
     public MO_AnimationOptions options;
+    public bool waitForTrigger;
 
     private void Start()
     {
@@ -21,7 +22,8 @@ internal sealed class PhysicsPlayer : MonoBehaviour
         _rigidBody.mass = float.MaxValue;
         _rigidBody.isKinematic = true;
 
-        Restart();
+        if (!waitForTrigger)
+            Restart();
     }
 
     private IEnumerator StartPhysics()
@@ -54,12 +56,20 @@ internal sealed class PhysicsPlayer : MonoBehaviour
         _rigidBody.rotation = _initRotation;
     }
 
-    public void Restart()
+    public void Trigger()
+    {
+        Restart(true);
+    }
+
+    public void Restart(bool triggered = false)
     {
         if (_physicsCoroutine != null)
             StopCoroutine(_physicsCoroutine);
 
         ResetPosition();
+
+        if (waitForTrigger && !triggered)
+            return;
         _physicsCoroutine = StartCoroutine(StartPhysics());
     }
 }

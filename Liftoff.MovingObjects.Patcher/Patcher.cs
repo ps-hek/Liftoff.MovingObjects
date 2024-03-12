@@ -71,6 +71,17 @@ namespace Liftoff.MovingObjects.Patcher
             AddSerializableField(assembly, animationOptsType, "animationWarmupDelay",
                 assembly.MainModule.ImportReference(typeof(float)));
 
+            AddSerializableField(assembly, animationOptsType, "animationRepeats",
+                assembly.MainModule.ImportReference(typeof(int)));
+
+
+            var triggerType = AddSerializableType(assembly, "MO_TriggerOptions");
+
+            AddSerializableField(assembly, triggerType, "triggerName",
+                assembly.MainModule.ImportReference(typeof(string)));
+            AddSerializableField(assembly, triggerType, "triggerTarget",
+                assembly.MainModule.ImportReference(typeof(string)));
+
             var animationType = AddSerializableType(assembly, "MO_Animation");
             AddSerializableField(assembly, animationType, "delay", assembly.MainModule.ImportReference(typeof(float)));
             AddSerializableField(assembly, animationType, "time", assembly.MainModule.ImportReference(typeof(float)));
@@ -82,6 +93,7 @@ namespace Liftoff.MovingObjects.Patcher
             AddSerializableField(assembly, trackBlueprintType, "mo_animationSteps",
                 assembly.MainModule.ImportReference(typeof(List<>)).MakeGenericInstanceType(animationType));
             AddSerializableField(assembly, trackBlueprintType, "mo_animationOptions", animationOptsType);
+            AddSerializableField(assembly, trackBlueprintType, "mo_triggerOptions", triggerType);
         }
     }
 }
