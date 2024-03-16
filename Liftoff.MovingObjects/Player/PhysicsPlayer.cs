@@ -44,6 +44,8 @@ internal sealed class PhysicsPlayer : MonoBehaviour
             yield return new WaitForSeconds(options.simulatePhysicsTime);
 
             ResetPosition();
+            if (waitForTrigger)
+                break;
         }
     }
 
