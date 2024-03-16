@@ -174,7 +174,14 @@ public sealed class Plugin : BaseUnityPlugin
         {
             var checkpointTrigger = flag.gameObject.transform.Find("CheckpointTrigger");
             if (checkpointTrigger != null)
-                checkpointTrigger.gameObject.AddComponent<TriggerBehavior>().triggerTarget = options.triggerTarget;
+            {
+                var trigger = checkpointTrigger.gameObject.AddComponent<TriggerBehavior>();
+                trigger.triggerTarget = options.triggerTarget;
+                if (options.triggerMinSpeed > 0)
+                    trigger.triggerMinSpeed = options.triggerMinSpeed;
+                if (options.triggerMaxSpeed > 0)
+                    trigger.triggerMaxSpeed = options.triggerMaxSpeed;
+            }
         }
 
         return waitForTrigger;

@@ -22,6 +22,8 @@ internal class TriggerBehavior : MonoBehaviour
 
     private bool _triggered;
 
+    public float? triggerMinSpeed;
+    public float? triggerMaxSpeed;
     public string triggerTarget;
 
     private void Start()
@@ -36,11 +38,37 @@ internal class TriggerBehavior : MonoBehaviour
             $"Detected {_animationPlayers.Length} animations and {_physicsPlayers.Length} physics for '{triggerTarget}' trigger");
     }
 
+    private static float MpsToKph(float kps)
+    {
+        return kps * 3.6f;
+    }
+
     public void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.layer != LayerMask.NameToLayer("Drone") || _triggered)
             return;
+
+        var speed = -1f;
+        if (other.attachedRigidbody != null)
+        {
+            speed = MpsToKph(other.attachedRigidbody.velocity.magnitude);
+            if (speed < triggerMinSpeed)
+            {
+                Log.LogInfo($"Trigger ignored {other}, speed {speed} < {triggerMinSpeed}");
+                return;
+            }
+            if (speed > triggerMaxSpeed)
+            {
+                Log.LogInfo($"Trigger ignored {other}, speed {speed} > {triggerMaxSpeed}");
+                return;
+            }
+        }
+
         _triggered = true;
+
+      
+
+        Log.LogInfo($"Triggered by {other}, speed {speed}");
         foreach (var player in _animationPlayers)
         {
             Log.LogInfo($"Triggered animation: {player} from '{triggerTarget}'");

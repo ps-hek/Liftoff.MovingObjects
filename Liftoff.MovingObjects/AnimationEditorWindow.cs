@@ -74,6 +74,10 @@ internal class AnimationEditorWindow : MonoBehaviour
 
         _root.Q<TextField>("trigger-name").RegisterValueChangedCallback(evt => trigger.triggerName = evt.newValue);
         _root.Q<TextField>("trigger-target").RegisterValueChangedCallback(evt => trigger.triggerTarget = evt.newValue);
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("trigger-target-speed-min"),
+            f => trigger.triggerMinSpeed = f);
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("trigger-target-speed-max"),
+            f => trigger.triggerMaxSpeed = f);
 
         _root.Q<DropdownField>("type")
             .RegisterValueChangedCallback(evt => OnSelectType(Enum.Parse<Type>(evt.newValue, true)));
@@ -145,9 +149,14 @@ internal class AnimationEditorWindow : MonoBehaviour
             var triggerTarget = _root.Q<TextField>("trigger-target");
             triggerTarget.value = trigger.triggerTarget;
 
+            var triggerTargetGroup = _root.Q<VisualElement>("trigger-target-section");
+
             var isCheckpoint = _blueprint.itemID.StartsWith("Checkpoint");
             GuiUtils.SetVisible(triggerName, !isCheckpoint);
-            GuiUtils.SetVisible(triggerTarget, isCheckpoint);
+            GuiUtils.SetVisible(triggerTargetGroup, isCheckpoint);
+
+            _root.Q<TextField>("trigger-target-speed-min").value = GuiUtils.FloatToString(trigger.triggerMinSpeed);
+            _root.Q<TextField>("trigger-target-speed-max").value = GuiUtils.FloatToString(trigger.triggerMaxSpeed);
         }
 
         switch (currentType)
