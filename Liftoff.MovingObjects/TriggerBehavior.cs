@@ -19,11 +19,10 @@ internal class TriggerBehavior : MonoBehaviour
     private AnimationPlayer[] _animationPlayers;
     private PhysicsPlayer[] _physicsPlayers;
 
-
     private bool _triggered;
 
-    public float? triggerMinSpeed;
     public float? triggerMaxSpeed;
+    public float? triggerMinSpeed;
     public string triggerTarget;
 
     private void Start()
@@ -57,6 +56,7 @@ internal class TriggerBehavior : MonoBehaviour
                 Log.LogInfo($"Trigger ignored {other}, speed {speed} < {triggerMinSpeed}");
                 return;
             }
+
             if (speed > triggerMaxSpeed)
             {
                 Log.LogInfo($"Trigger ignored {other}, speed {speed} > {triggerMaxSpeed}");
@@ -66,7 +66,6 @@ internal class TriggerBehavior : MonoBehaviour
 
         _triggered = true;
 
-      
 
         Log.LogInfo($"Triggered by {other}, speed {speed}");
         foreach (var player in _animationPlayers)

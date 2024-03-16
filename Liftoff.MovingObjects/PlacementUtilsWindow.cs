@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using BepInEx.Logging;
+using Liftoff.MovingObjects.Player;
 using Liftoff.MovingObjects.Utils;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -88,6 +88,8 @@ internal class PlacementUtilsWindow : MonoBehaviour
 
         GuiUtils.ConvertToFloatField(_root.Q<TextField>("grid-align-value"),
             f => Shared.PlacementUtils.GridRound = f, Shared.PlacementUtils.GridRound);
+        GuiUtils.ConvertToFloatField(_root.Q<TextField>("drag-grid-align-value"),
+            f => Shared.PlacementUtils.DragGridRound = f, Shared.PlacementUtils.DragGridRound);
         _root.Q<Button>("grid-align").clicked += RoundGizmoLocation;
 
         _root.Q<Toggle>("enchanted-editor")
@@ -99,6 +101,7 @@ internal class PlacementUtilsWindow : MonoBehaviour
     private void RefreshGui()
     {
         _root.Q<TextField>("grid-align-value").value = GuiUtils.FloatToString(Shared.PlacementUtils.GridRound);
+        _root.Q<TextField>("drag-grid-align-value").value = GuiUtils.FloatToString(Shared.PlacementUtils.DragGridRound);
         _root.Q<Toggle>("enchanted-editor").value = Shared.PlacementUtils.EnchantedEditor;
     }
 
@@ -108,7 +111,6 @@ internal class PlacementUtilsWindow : MonoBehaviour
             RoundGizmoLocation();
         else if (_root != null && Input.GetKeyDown(KeyCode.F2))
             GuiUtils.ToggleVisible(_root);
-
         if (!Shared.PlacementUtils.EnchantedEditor)
             return;
 
@@ -125,16 +127,16 @@ internal class PlacementUtilsWindow : MonoBehaviour
         foreach (var trackItemFlag in FindObjectsOfType<TrackItemFlag>())
         {
             var info = ReflectionUtils.GetPrivateFieldValueByType<TrackBlueprint>(trackItemFlag);
-            if (info !=null && string.Equals(groupId, info.mo_groupId))
+            if (info != null && string.Equals(groupId, info.mo_groupId))
                 items.Add(new ItemInfo { blueprint = info, gameObject = trackItemFlag.gameObject });
         }
 
         return items;
     }
-    
+
     private void HandleEnchantedKeys()
     {
-        if (!Input.GetKeyDown(KeyCode.G)) 
+        if (!Input.GetKeyDown(KeyCode.G))
             return;
         if (_selectedItem == null)
         {
@@ -150,6 +152,7 @@ internal class PlacementUtilsWindow : MonoBehaviour
                 itemInfo.gameObject.transform.parent = null;
             }
         }
+
         DeselectAll();
     }
 
@@ -222,21 +225,6 @@ internal class PlacementUtilsWindow : MonoBehaviour
         groupHighlightObj.AddComponent<GroupSelectionInfo>().trackBlueprint = blueprint;
     }
 
-    private static float RoundToStep(float value, float step, int decimals = 3)
-    {
-        if (step == 0)
-            return value;
-
-        var d = MathF.Pow(10, decimals);
-        var rawVal = MathF.Round(value / step, MidpointRounding.AwayFromZero) * step;
-
-        return MathF.Floor(rawVal * d) / d;
-    }
-
-    private static Vector3 RoundVectorToStep(Vector3 value, float step)
-    {
-        return new Vector3(RoundToStep(value.x, step), RoundToStep(value.y, step), RoundToStep(value.z, step));
-    }
 
     private static void RoundGizmoLocation()
     {
@@ -245,7 +233,7 @@ internal class PlacementUtilsWindow : MonoBehaviour
             return;
 
         gizmo.transform.position =
-            RoundVectorToStep(gizmo.transform.position, Shared.PlacementUtils.GridRound);
+            GirdUtils.RoundVectorToStep(gizmo.transform.position, Shared.PlacementUtils.GridRound);
     }
 
     private class GroupSelectionInfo : MonoBehaviour

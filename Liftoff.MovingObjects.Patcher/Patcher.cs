@@ -98,7 +98,8 @@ namespace Liftoff.MovingObjects.Patcher
                 assembly.MainModule.ImportReference(typeof(List<>)).MakeGenericInstanceType(animationType));
             AddSerializableField(assembly, trackBlueprintType, "mo_animationOptions", animationOptsType);
             AddSerializableField(assembly, trackBlueprintType, "mo_triggerOptions", triggerType);
-            AddSerializableField(assembly, trackBlueprintType, "mo_groupId", assembly.MainModule.ImportReference(typeof(string)));
+            AddSerializableField(assembly, trackBlueprintType, "mo_groupId",
+                assembly.MainModule.ImportReference(typeof(string)));
         }
     }
 }

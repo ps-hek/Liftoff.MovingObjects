@@ -5,21 +5,15 @@ namespace Liftoff.MovingObjects;
 
 internal static class Shared
 {
-
     internal static class PlacementUtils
     {
         public static float GridRound { get; set; } = 0.5f;
+        public static float DragGridRound { get; set; } = 0.0f;
         public static bool EnchantedEditor { get; set; }
     }
+
     internal static class Editor
     {
-        public class ItemInfo
-        {
-            public GameObject gameObject;
-            public TrackBlueprint blueprint;
-        }
-
-
         public static event Action<ItemInfo> OnItemSelected;
         public static event Action OnItemCleared;
 
@@ -31,6 +25,12 @@ internal static class Shared
         public static void ItemCleared()
         {
             OnItemCleared?.Invoke();
+        }
+
+        public class ItemInfo
+        {
+            public TrackBlueprint blueprint;
+            public GameObject gameObject;
         }
     }
 }

@@ -84,6 +84,20 @@ public sealed class Plugin : BaseUnityPlugin
             __result = true;
     }
 
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(TrackDragCenterOnCamera), "OnDragHold")]
+    [HarmonyPatch(typeof(TrackDragBehaviorSnap), "OnDragHold")]
+    [HarmonyPatch(typeof(TrackDragBehaviorRibbon), "OnDragHold")]
+    private static void OnDragHold(TrackDragCenterOnCamera __instance)
+    {
+        if (Shared.PlacementUtils.DragGridRound <= 0)
+            return;
+        var parent = __instance.gameObject.transform.parent;
+        if (parent == null)
+            return;
+        parent.position = GirdUtils.RoundVectorToStep(parent.position, Shared.PlacementUtils.DragGridRound);
+    }
+
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(FlightManager), "ResetDroneRoutine")]

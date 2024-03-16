@@ -59,7 +59,7 @@ internal class AnimationEditorWindow : MonoBehaviour
     {
         // Dirty hack for add focus support
         GameObject.Find("AnimationEditorWindowPanelSettings").AddComponent<InputField>().interactable = false;
-        
+
         _root = _uiDocument.rootVisualElement;
 
         _root.Q<Toggle>("trigger-enabled")
@@ -255,7 +255,7 @@ internal class AnimationEditorWindow : MonoBehaviour
         _item = item;
         _blueprint = ReflectionUtils.GetPrivateFieldValueByType<TrackBlueprint>(item);
         Invoke("RefreshGui", 0);
-        Shared.Editor.ItemSelected(new Shared.Editor.ItemInfo()
+        Shared.Editor.ItemSelected(new Shared.Editor.ItemInfo
         {
             gameObject = item.gameObject,
             blueprint = _blueprint
