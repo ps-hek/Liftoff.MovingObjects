@@ -45,6 +45,7 @@
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
       <HintPath>..\lib\UnityEngine.AssetBundleModule.dll</HintPath>
+	  <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>..\lib\UnityEngine.CoreModule.dll</HintPath>
@@ -56,6 +57,7 @@
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>..\lib\UnityEngine.InputLegacyModule.dll</HintPath>
+	  <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>..\lib\UnityEngine.PhysicsModule.dll</HintPath>
@@ -71,6 +73,7 @@
     </Reference>
     <Reference Include="UnityEngine.UIElementsModule">
       <HintPath>..\lib\UnityEngine.UIElementsModule.dll</HintPath>
+	  <Private>False</Private>
     </Reference>
   </ItemGroup>
 
@@ -88,4 +91,8 @@
       <LastGenOutput>UI.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy $(TargetPath) D:\SteamLibrary\steamapps\common\Liftoff\BepInEx\scripts" />
+  </Target>
 </Project>

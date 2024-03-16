@@ -59,7 +59,7 @@ internal class AnimationEditorWindow : MonoBehaviour
     {
         // Dirty hack for add focus support
         GameObject.Find("AnimationEditorWindowPanelSettings").AddComponent<InputField>().interactable = false;
-
+        
         _root = _uiDocument.rootVisualElement;
 
         _root.Q<Toggle>("trigger-enabled")
@@ -162,10 +162,10 @@ internal class AnimationEditorWindow : MonoBehaviour
                 var animationPlay = _root.Q<Button>("animation-play");
                 animationPlay.text = _tempAnimationObject == null ? PlayButtonText : StopButtonText;
 
-                var stepsContainer = _root.Q<ScrollView>("animation-steps").contentContainer;
+                var stepsContainer = _root.Q<ScrollView>("animation-steps");
                 stepsContainer.Clear();
-                foreach (var step in steps)
-                    AddStepElement(stepsContainer, step);
+                for (var i = 0; i < steps.Count; i++)
+                    AddStepElement(stepsContainer, steps[i], i);
                 break;
             case Type.Physics:
                 _root.Q<TextField>("physics-time").value = GuiUtils.FloatToString(options.simulatePhysicsTime);
@@ -182,10 +182,11 @@ internal class AnimationEditorWindow : MonoBehaviour
         }
     }
 
-    private void AddStepElement(VisualElement stepsContainer, MO_Animation step)
+    private void AddStepElement(VisualElement stepsContainer, MO_Animation step, int i)
     {
         var item = assets.AnimationTemplateAsset.Instantiate();
 
+        item.Q<Label>("id").text = i.ToString();
         item.Q<Label>("position").text = GuiUtils.VectorToString(step.position);
         item.Q<Label>("rotation").text = GuiUtils.VectorToString(step.rotation);
         item.Q<TextField>("time").value = GuiUtils.FloatToString(step.time);
@@ -245,6 +246,11 @@ internal class AnimationEditorWindow : MonoBehaviour
         _item = item;
         _blueprint = ReflectionUtils.GetPrivateFieldValueByType<TrackBlueprint>(item);
         Invoke("RefreshGui", 0);
+        Shared.Editor.ItemSelected(new Shared.Editor.ItemInfo()
+        {
+            gameObject = item.gameObject,
+            blueprint = _blueprint
+        });
 
         Log.LogInfo(
             $"Item selected: {_blueprint.itemID}/{_blueprint.instanceID}, {_item.gameObject.transform.position}");
@@ -255,13 +261,14 @@ internal class AnimationEditorWindow : MonoBehaviour
         StopAnimation();
         StopSimulation();
         _blueprint = null;
+        Shared.Editor.ItemCleared();
         Log.LogInfo("Item unselected");
     }
 
     private void OnDestroy()
     {
         StopAnimation();
-        StopAnimation();
+        StopSimulation();
     }
 
     private void StartAnimation()
@@ -311,12 +318,6 @@ internal class AnimationEditorWindow : MonoBehaviour
             Destroy(_tempPhysicsObject);
             _tempPhysicsObject = null;
         }
-    }
-
-    internal static class SharedState
-    {
-        public static bool PlacementsUtilsVisible { get; set; } = false;
-        public static float GridRound { get; set; } = 0.5f;
     }
 
     public struct Assets
