@@ -1,9 +1,9 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Liftoff.MovingObjects.Player;
+namespace Liftoff.MovingObjects.Utils;
 
-internal class GirdUtils
+internal class GridUtils
 {
     private static float RoundToStep(float value, float step, int decimals = 3)
     {

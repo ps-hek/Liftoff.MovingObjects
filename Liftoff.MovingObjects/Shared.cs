@@ -16,6 +16,7 @@ internal static class Shared
     {
         public static event Action<ItemInfo> OnItemSelected;
         public static event Action OnItemCleared;
+        public static event Action OnRefreshGuiRequest;
 
         public static void ItemSelected(ItemInfo info)
         {
@@ -25,6 +26,10 @@ internal static class Shared
         public static void ItemCleared()
         {
             OnItemCleared?.Invoke();
+        }
+        public static void RequestRefreshGui()
+        {
+            OnRefreshGuiRequest?.Invoke();
         }
 
         public class ItemInfo

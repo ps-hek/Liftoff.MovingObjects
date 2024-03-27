@@ -63,12 +63,23 @@ internal sealed class PhysicsPlayer : MonoBehaviour
         Restart(true);
     }
 
-    public void Restart(bool triggered = false)
+    private void Stop()
     {
         if (_physicsCoroutine != null)
             StopCoroutine(_physicsCoroutine);
 
         ResetPosition();
+    }
+
+    public void OnDestroy()
+    {
+        Stop();
+        Destroy(_rigidBody);
+    }
+
+    public void Restart(bool triggered = false)
+    {
+        Stop();
 
         if (waitForTrigger && !triggered)
             return;

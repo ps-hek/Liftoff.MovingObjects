@@ -1,11 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using Liftoff.MovingObjects.Player;
 using Liftoff.MovingObjects.Utils;
+using Liftoff.Multiplayer;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.UIElements;
 
 namespace Liftoff.MovingObjects;
@@ -76,6 +79,23 @@ public sealed class Plugin : BaseUnityPlugin
         placementUtilsWindow.assets = _placementAssets;
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(PanelShareContent), "ShareItem", typeof(string), typeof(Sprite))]
+    private static void ShareItem(ref Sprite __1)
+    {
+        var overwritePreview = Path.Combine(Paths.GameRootPath, "preview.png");
+        if (!File.Exists(overwritePreview))
+        {
+            Log.LogInfo($"Preview overwrite not found {overwritePreview}, skip");
+            return;
+        }
+
+        var preview = new Texture2D(2, 2);
+        preview.LoadImage(File.ReadAllBytes(overwritePreview));
+
+        __1 = Sprite.Create(preview,new Rect(0, 0, preview.width, preview.height), new Vector2(0.5f, 0.5f));
+    }
+
     [HarmonyPostfix]
     [HarmonyPatch(typeof(TrackEditorEditWindow), "AtLeastOneItemAvailable", typeof(TrackItemCategory))]
     private static void AtLeastOneItemAvailable(ref bool __result)
@@ -95,7 +115,7 @@ public sealed class Plugin : BaseUnityPlugin
         var parent = __instance.gameObject.transform.parent;
         if (parent == null)
             return;
-        parent.position = GirdUtils.RoundVectorToStep(parent.position, Shared.PlacementUtils.DragGridRound);
+        parent.position = GridUtils.RoundVectorToStep(parent.position, Shared.PlacementUtils.DragGridRound);
     }
 
 
@@ -146,8 +166,26 @@ public sealed class Plugin : BaseUnityPlugin
         __instance.onGameModeInitialized += Callback;
     }
 
+    /*
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(MultiplayerGameSetupPanelRoomSettings), "FillMaxNrOfPlayersDropdown")]
+    private static void FillMaxNrOfPlayersDropdown(MultiplayerGameSetupPanelRoomSettings __instance)
+    {
+        
+        var list = ReflectionUtils.GetPrivateFieldValue<LiftoffDropdown>(__instance, "dropdownNrOfPlayers");
+
+        var newOptions = new List<Dropdown.OptionData>();
+        for (var i = 9; i <= 64; i++)
+            newOptions.Add(new LiftoffDropdown.LiftoffOptionData($"{i} players [MOD]", null, i));
+        list.AddOptions(newOptions);
+    }
+    */
+
     private static void AddPhysics(TrackBlueprint blueprint, Component flag, bool waitForTrigger)
     {
+        if (!string.IsNullOrEmpty(blueprint.mo_groupId))
+            return; // TODO: Fix group physics
+
         Log.LogWarning($"Item with physics detected: {blueprint}, {flag}");
 
         var player = flag.gameObject.AddComponent<PhysicsPlayer>();
@@ -218,14 +256,50 @@ public sealed class Plugin : BaseUnityPlugin
         }
     }
 
+    private static void GroupFlags(IEnumerable<Component> flags)
+    {
+        var groups = new Dictionary<string, List<GameObject>>();
+        var rootObjects = new Dictionary<string, GameObject>();
+
+        foreach (var flag in flags)
+        {
+            var blueprint = ReflectionUtils.GetPrivateFieldValueByType<TrackBlueprint>(flag);
+            if (string.IsNullOrEmpty(blueprint?.mo_groupId))
+                continue;
+
+            var groupId = blueprint.mo_groupId;
+            if (groups.TryGetValue(groupId, out var list))
+                list.Add(flag.gameObject);
+            else
+                groups[groupId] = new List<GameObject> { flag.gameObject };
+
+            if (blueprint.mo_animationOptions != null)
+                rootObjects[groupId] = flag.gameObject;
+        }
+
+
+        foreach (var (groupId, gameObjects) in groups)
+        {
+            if (gameObjects.Count == 1 || !rootObjects.ContainsKey(groupId))
+                continue;
+
+            var rootObj = rootObjects[groupId];
+
+            var groupObject = new GameObject("MO_Group_" + groupId);
+            groupObject.transform.parent = rootObj.transform;
+            groupObject.transform.position = rootObj.transform.position;
+            groupObject.transform.rotation = rootObj.transform.rotation;
+
+            foreach (var o in gameObjects)
+                o.transform.parent = groupObject.transform;
+        }
+    }
+
     private static void OnGameModeInitialized()
     {
-        InjectPlayers(FindObjectsOfType<TrackItemFlag>());
-        InjectPlayers(FindObjectsOfType<TrackItemKillDroneTrigger>());
-        InjectPlayers(FindObjectsOfType<TrackItemShowTextTrigger>());
-        InjectPlayers(FindObjectsOfType<TrackItemPlaySoundTrigger>());
-        InjectPlayers(FindObjectsOfType<TrackItemRepairPropellersTrigger>());
-        InjectPlayers(FindObjectsOfType<TrackItemChargeBatteryTrigger>());
-        InjectPlayers(FindObjectsOfType<TrackItemFlexibleCheckpointTrigger>());
+        var flags = EditorUtils.FindAllFlags();
+
+        GroupFlags(flags);
+        InjectPlayers(flags);
     }
 }

@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using BepInEx.Logging;
 using Liftoff.MovingObjects.Player;
 using Liftoff.MovingObjects.Utils;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
+using static Liftoff.FlightControllers.FlightMode;
 using Button = UnityEngine.UIElements.Button;
 using Logger = BepInEx.Logging.Logger;
 using Toggle = UnityEngine.UIElements.Toggle;
@@ -23,6 +26,7 @@ internal class AnimationEditorWindow : MonoBehaviour
 
     private const string PlayButtonText = "Play";
     private const string StopButtonText = "Stop";
+    private const string NotSupportedButtonText = "CURRENTLY IN DEVELOPEMENT";
 
     private static readonly ManualLogSource Log =
         Logger.CreateLogSource($"{PluginInfo.PLUGIN_NAME}.{nameof(AnimationEditorWindow)}");
@@ -53,6 +57,8 @@ internal class AnimationEditorWindow : MonoBehaviour
         _uiDocument.visualTreeAsset = assets.VisualTreeAsset;
         _uiDocument.panelSettings = assets.PanelSettings;
         _uiDocument.rootVisualElement.StretchToParentSize();
+
+        Shared.Editor.OnRefreshGuiRequest += RefreshGui;
     }
 
     private void OnEnable()
@@ -80,7 +86,11 @@ internal class AnimationEditorWindow : MonoBehaviour
             f => trigger.triggerMaxSpeed = f);
 
         _root.Q<DropdownField>("type")
-            .RegisterValueChangedCallback(evt => OnSelectType(Enum.Parse<Type>(evt.newValue, true)));
+            .RegisterValueChangedCallback(evt =>
+            {
+                SetType(Enum.Parse<Type>(evt.newValue, true));
+                RefreshGui();
+            });
         _root.Q<Toggle>("animation-teleport-to-start")
             .RegisterValueChangedCallback(evt => options.teleportToStart = evt.newValue);
         _root.Q<Button>("animation-add").clicked += () =>
@@ -122,6 +132,9 @@ internal class AnimationEditorWindow : MonoBehaviour
 
     private void OnPlayPhysicsClicked()
     {
+        if (!string.IsNullOrEmpty(_blueprint.mo_groupId))
+            return; // TODO: Fix group physics
+
         if (_tempPhysicsObject == null)
             StartSimulation();
         else
@@ -129,16 +142,28 @@ internal class AnimationEditorWindow : MonoBehaviour
         RefreshGui();
     }
 
+    private IEnumerator UpdateMenuPos()
+    {
+        yield return new WaitForFixedUpdate();
+        var rect = GameObject.Find("DetailWindows")?.GetComponent<RectTransform>();
+        if (rect != null)
+            _root.Q<VisualElement>("root").style.top =
+                new StyleLength(new Length(rect.sizeDelta.y + 10, LengthUnit.Pixel));
+    }
+
+
     private void RefreshGui()
     {
         if (_blueprint == null)
             return;
 
+        StartCoroutine(UpdateMenuPos());
+
         var currentType = options == null ? Type.None : options.simulatePhysics ? Type.Physics : Type.Animation;
         _root.Q<DropdownField>("type").value = currentType.ToString();
-        OnSelectType(currentType);
 
         var hasTrigger = trigger != null;
+
         _root.Q<Toggle>("trigger-enabled").value = hasTrigger;
         GuiUtils.SetVisible(_root.Q<GroupBox>("trigger-box"), hasTrigger);
         if (hasTrigger)
@@ -151,17 +176,22 @@ internal class AnimationEditorWindow : MonoBehaviour
 
             var triggerTargetGroup = _root.Q<VisualElement>("trigger-target-section");
 
-            var isCheckpoint = _blueprint.itemID.StartsWith("Checkpoint");
-            GuiUtils.SetVisible(triggerName, !isCheckpoint);
-            GuiUtils.SetVisible(triggerTargetGroup, isCheckpoint);
+            GuiUtils.SetVisible(triggerName, true);
+            GuiUtils.SetVisible(triggerTargetGroup, _blueprint.itemID.StartsWith("Checkpoint"));
 
             _root.Q<TextField>("trigger-target-speed-min").value = GuiUtils.FloatToString(trigger.triggerMinSpeed);
             _root.Q<TextField>("trigger-target-speed-max").value = GuiUtils.FloatToString(trigger.triggerMaxSpeed);
         }
 
+        var animationBox = _root.Q<GroupBox>("animation-box");
+        var physicsBox = _root.Q<GroupBox>("physics-box");
+
         switch (currentType)
         {
             case Type.Animation:
+                GuiUtils.SetVisible(animationBox, true);
+                GuiUtils.SetVisible(physicsBox, false);
+
                 _root.Q<Toggle>("animation-teleport-to-start").value = options.teleportToStart;
                 _root.Q<TextField>("animation-warmup").value = GuiUtils.FloatToString(options.animationWarmupDelay);
                 _root.Q<TextField>("animation-repeats").value = options.animationRepeats.ToString();
@@ -177,14 +207,23 @@ internal class AnimationEditorWindow : MonoBehaviour
                     AddStepElement(stepsContainer, steps[i], i);
                 break;
             case Type.Physics:
+                GuiUtils.SetVisible(animationBox, false);
+                GuiUtils.SetVisible(physicsBox, true);
+
                 _root.Q<TextField>("physics-time").value = GuiUtils.FloatToString(options.simulatePhysicsTime);
                 _root.Q<TextField>("physics-delay").value = GuiUtils.FloatToString(options.simulatePhysicsDelay);
                 _root.Q<TextField>("physics-warmup").value = GuiUtils.FloatToString(options.simulatePhysicsWarmupDelay);
 
                 var physicsPlay = _root.Q<Button>("physics-play");
-                physicsPlay.text = _tempPhysicsObject == null ? PlayButtonText : StopButtonText;
+
+                if (!string.IsNullOrEmpty(_blueprint.mo_groupId)) // TODO: Fix group physics
+                    physicsPlay.text = NotSupportedButtonText;
+                else
+                    physicsPlay.text = _tempPhysicsObject == null ? PlayButtonText : StopButtonText;
                 break;
             case Type.None:
+                GuiUtils.SetVisible(animationBox, false);
+                GuiUtils.SetVisible(physicsBox, false);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(currentType), currentType, null);
@@ -212,34 +251,24 @@ internal class AnimationEditorWindow : MonoBehaviour
         stepsContainer.Add(item);
     }
 
-    private void OnSelectType(Type type)
+    private void SetType(Type type)
     {
-        var animationBox = _root.Q<GroupBox>("animation-box");
-        var physicsBox = _root.Q<GroupBox>("physics-box");
-
         switch (type)
         {
             case Type.None:
                 _blueprint.mo_animationOptions = null;
                 _blueprint.mo_animationSteps = null;
-                GuiUtils.SetVisible(animationBox, false);
-                GuiUtils.SetVisible(physicsBox, false);
                 break;
             case Type.Animation:
                 _blueprint.mo_animationOptions ??= new MO_AnimationOptions();
                 _blueprint.mo_animationSteps ??= new List<MO_Animation>();
-
-                GuiUtils.SetVisible(animationBox, true);
-                GuiUtils.SetVisible(physicsBox, false);
                 _blueprint.mo_animationOptions.simulatePhysics = false;
                 StopSimulation();
                 break;
             case Type.Physics:
                 _blueprint.mo_animationOptions ??= new MO_AnimationOptions();
                 _blueprint.mo_animationSteps ??= new List<MO_Animation>();
-
-                GuiUtils.SetVisible(animationBox, false);
-                GuiUtils.SetVisible(physicsBox, true);
+                _blueprint.mo_animationSteps.Clear();
                 _blueprint.mo_animationOptions.simulatePhysics = true;
                 break;
             default:
@@ -280,13 +309,40 @@ internal class AnimationEditorWindow : MonoBehaviour
         StopSimulation();
     }
 
+    private GameObject CreateTempObj()
+    {
+        if (string.IsNullOrEmpty(_blueprint.mo_groupId))
+        {
+            var obj = Instantiate(_item.gameObject);
+            obj.transform.SetPositionAndRotation(_item.transform.position, _item.transform.rotation);
+            
+            obj.transform.localScale = _item.gameObject.transform.localScale;
+            return obj;
+        }
+
+        var childs = new List<GameObject>();
+        GameObject rootObj = null;
+        var flags = EditorUtils.FindFlagsByGroupId(_blueprint.mo_groupId);
+        foreach (var flag in flags)
+        {
+            var clone = Instantiate(flag.gameObject);
+            clone.transform.SetPositionAndRotation(flag.gameObject.transform.position, flag.gameObject.transform.rotation);
+            clone.transform.localScale = flag.gameObject.transform.localScale;
+            if (flag.gameObject == _item.gameObject)
+                rootObj = clone;
+            else
+                childs.Add(clone);
+        }
+
+        FakeGroup.GroupObjects(rootObj, childs, true);
+        return rootObj;
+    }
+
     private void StartAnimation()
     {
         Log.LogWarning($"Animation start: {_item.gameObject} at {_item.transform.position}");
 
-        _tempAnimationObject = Instantiate(_item.gameObject);
-        _tempAnimationObject.transform.SetPositionAndRotation(_item.transform.position, _item.transform.rotation);
-
+        _tempAnimationObject = CreateTempObj();
         var player = _tempAnimationObject.AddComponent<AnimationPlayer>();
         player.steps = new List<MO_Animation>(_blueprint.mo_animationSteps);
         player.options = _blueprint.mo_animationOptions;
@@ -303,14 +359,23 @@ internal class AnimationEditorWindow : MonoBehaviour
 
     private void StartSimulation()
     {
-        _tempPhysicsObject = Instantiate(_item.gameObject);
-        _tempPhysicsObject.gameObject.transform.SetPositionAndRotation(_item.transform.position,
-            _item.transform.rotation);
+        List<GameObject> groupObjects = null;
+        if (!string.IsNullOrEmpty(_blueprint.mo_groupId))
+            groupObjects = EditorUtils.FindFlagsByGroupId(_blueprint.mo_groupId).Select(c => c.gameObject).ToList();
 
-        var tempColliders = _tempPhysicsObject.GetComponentsInChildren<Collider>();
+        _tempPhysicsObject = CreateTempObj();
+
+        var tempColliders = _tempPhysicsObject.GetComponentsInChildren<Collider>().ToList();
+
+        var tempGroupObjects = FakeGroup.GetChilds(_tempPhysicsObject);
+        if (tempGroupObjects != null)
+            tempColliders.AddRange(tempGroupObjects.SelectMany(o => o.GetComponentsInChildren<Collider>()));
+        
         var targetColliders = new List<Collider>();
         targetColliders.AddRange(_item.gameObject.GetComponentsInChildren<Collider>());
         targetColliders.AddRange(GameObject.Find("TrackEditorGizmo").GetComponentsInChildren<Collider>());
+        if (groupObjects != null)
+            targetColliders.AddRange(groupObjects.SelectMany(c => c.GetComponentsInChildren<Collider>()));
 
         foreach (var tempCollider in tempColliders)
         foreach (var targetCollider in targetColliders)

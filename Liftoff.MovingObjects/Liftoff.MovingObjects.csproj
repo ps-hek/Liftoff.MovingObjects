@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Liftoff.MovingObjects</AssemblyName>
     <Description></Description>
-    <Version>1.0.10</Version>
+    <Version>1.0.11</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <OutputPath>..\bin\$(Configuration)\BepInEx\plugins</OutputPath>
@@ -75,6 +75,14 @@
       <HintPath>..\lib\UnityEngine.UIElementsModule.dll</HintPath>
 	  <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\lib\UnityEngine.ImageConversionModule.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>..\lib\UnityEngine.AudioModule.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -91,4 +99,9 @@
       <LastGenOutput>UI.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
+  
+  
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy $(TargetPath) D:\SteamLibrary\steamapps\common\Liftoff\BepInEx\scripts" />
+  </Target>
 </Project>

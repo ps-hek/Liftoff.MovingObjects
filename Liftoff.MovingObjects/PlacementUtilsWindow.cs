@@ -20,6 +20,8 @@ internal class PlacementUtilsWindow : MonoBehaviour
     private static readonly ManualLogSource Log =
         Logger.CreateLogSource($"{PluginInfo.PLUGIN_NAME}.{nameof(PlacementUtilsWindow)}");
 
+    private IDisposable _fakeGroupContext;
+
     private VisualElement _root;
     private ItemInfo _selectedItem;
 
@@ -49,12 +51,7 @@ internal class PlacementUtilsWindow : MonoBehaviour
         if (_selectedItem == null)
             return;
 
-        foreach (var trackItemFlag in FindObjectsOfType<TrackItemFlag>())
-        {
-            var t = trackItemFlag.gameObject.transform;
-            if (t.parent == _selectedItem.gameObject.transform)
-                t.parent = null;
-        }
+        _fakeGroupContext?.Dispose();
 
         _selectedItem = null;
         DeselectAll();
@@ -67,12 +64,15 @@ internal class PlacementUtilsWindow : MonoBehaviour
         DeselectAll();
         if (!Shared.PlacementUtils.EnchantedEditor || string.IsNullOrEmpty(selectedItem.blueprint.mo_groupId))
             return;
+        _fakeGroupContext?.Dispose();
 
-        foreach (var info in FindItemsByGroupId(selectedItem.blueprint.mo_groupId))
+        var childs = FindItemsByGroupId(selectedItem.blueprint.mo_groupId)
+            .Select(info => info.gameObject).Where(obj => obj != selectedItem.gameObject).ToList();
+        _fakeGroupContext = FakeGroup.GroupObjects(selectedItem.gameObject, childs, false);
+
+        foreach (var child in childs)
         {
-            info.gameObject.transform.parent = selectedItem.gameObject.transform;
-
-            var groupHighlightObj = Highlight(info.gameObject);
+            var groupHighlightObj = Highlight(child);
             if (groupHighlightObj != null)
                 groupHighlightObj.AddComponent<GroupSelectionInfo>().trackBlueprint = selectedItem.blueprint;
         }
@@ -109,6 +109,8 @@ internal class PlacementUtilsWindow : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.F1))
             RoundGizmoLocation();
+        else if (Input.GetKeyDown(KeyCode.F3))
+            ToggleNoClip();
         else if (_root != null && Input.GetKeyDown(KeyCode.F2))
             GuiUtils.ToggleVisible(_root);
         if (!Shared.PlacementUtils.EnchantedEditor)
@@ -117,8 +119,16 @@ internal class PlacementUtilsWindow : MonoBehaviour
         if (Input.GetKey(KeyCode.LeftControl))
             HandleEnchantedKeys();
 
-        if (_selectedItem == null && Input.GetMouseButtonDown((int)MouseButton.MiddleMouse))
+        if (_selectedItem == null && Input.GetMouseButtonDown((int)MouseButton.MiddleMouse)) 
             HandleSelection();
+    }
+
+    private void ToggleNoClip()
+    {
+        var controller = GameObject.Find("FirstPersonController");
+        var rigidBody = controller?.GetComponent<Rigidbody>();
+        if (rigidBody != null)
+            rigidBody.detectCollisions = !rigidBody.detectCollisions;
     }
 
     private List<ItemInfo> FindItemsByGroupId(string groupId)
@@ -154,6 +164,7 @@ internal class PlacementUtilsWindow : MonoBehaviour
         }
 
         DeselectAll();
+        Shared.Editor.RequestRefreshGui();
     }
 
     private void DeselectAll()
@@ -233,7 +244,7 @@ internal class PlacementUtilsWindow : MonoBehaviour
             return;
 
         gizmo.transform.position =
-            GirdUtils.RoundVectorToStep(gizmo.transform.position, Shared.PlacementUtils.GridRound);
+            GridUtils.RoundVectorToStep(gizmo.transform.position, Shared.PlacementUtils.GridRound);
     }
 
     private class GroupSelectionInfo : MonoBehaviour

@@ -91,11 +91,7 @@ internal sealed class AnimationPlayer : MonoBehaviour
 
     public void Restart(bool triggered = false)
     {
-        if (_animationCoroutine != null)
-            StopCoroutine(_animationCoroutine);
-
-        _rigidBody.position = _initPosition;
-        _rigidBody.rotation = _initRotation;
+        Stop();
 
         if (waitForTrigger && !triggered)
             return;
@@ -105,6 +101,21 @@ internal sealed class AnimationPlayer : MonoBehaviour
     public void Trigger()
     {
         Restart(true);
+    }
+
+    private void Stop()
+    {
+        if (_animationCoroutine != null)
+            StopCoroutine(_animationCoroutine);
+
+        _rigidBody.position = _initPosition;
+        _rigidBody.rotation = _initRotation;
+    }
+
+    public void OnDestroy()
+    {
+        Stop();
+        Destroy(_rigidBody);
     }
 
     private struct Step
