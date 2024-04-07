@@ -22,7 +22,7 @@ internal class PlacementUtilsWindow : MonoBehaviour
 
     private IDisposable _fakeGroupContext;
 
-    private VisualElement _root;
+    private VisualElement _root => _uiDocument.rootVisualElement;
     private ItemInfo _selectedItem;
 
     private UIDocument _uiDocument;
@@ -38,6 +38,8 @@ internal class PlacementUtilsWindow : MonoBehaviour
 
         Shared.Editor.OnItemSelected += OnItemSelected;
         Shared.Editor.OnItemCleared += OnItemCleared;
+
+        InvokeRepeating("UpdateStats", 1f, 1f);
     }
 
     private void OnDestroy()
@@ -78,11 +80,20 @@ internal class PlacementUtilsWindow : MonoBehaviour
         }
     }
 
+    private void UpdateStats()
+    {
+        if (_root == null)
+            return;
+
+        var objects = EditorUtils.FindAllFlags().Where(c => c.gameObject.transform.parent?.name?.EndsWith("_DragParent") != true).ToList();
+        _root.Q<Label>("object-count").text = objects.Count.ToString();
+        _root.Q<Label>("triangle-count").text = objects.SelectMany(c => c.gameObject.GetComponentsInChildren<MeshFilter>()).Select(f => f.sharedMesh.triangles.Length / 3).Sum().ToString();
+    }
+
     private void OnEnable()
     {
         // Dirty hack for add focus support
         GameObject.Find("UtilsWindowPanelSettings").AddComponent<InputField>().interactable = false;
-        _root = _uiDocument.rootVisualElement;
 
         GuiUtils.SetVisible(_root, false);
 
@@ -111,6 +122,8 @@ internal class PlacementUtilsWindow : MonoBehaviour
             RoundGizmoLocation();
         else if (Input.GetKeyDown(KeyCode.F3))
             ToggleNoClip();
+        else if (Input.GetKeyDown(KeyCode.F4))
+            ToggleWireframe();
         else if (_root != null && Input.GetKeyDown(KeyCode.F2))
             GuiUtils.ToggleVisible(_root);
         if (!Shared.PlacementUtils.EnchantedEditor)
@@ -121,6 +134,24 @@ internal class PlacementUtilsWindow : MonoBehaviour
 
         if (_selectedItem == null && Input.GetMouseButtonDown((int)MouseButton.MiddleMouse)) 
             HandleSelection();
+    }
+
+    private void ToggleWireframe()
+    {
+        var playerCamera = GameObject.Find("PlayerCamera")?.GetComponent<Camera>();
+        if (playerCamera == null)
+            return;
+
+        var wireframe = playerCamera.gameObject.GetComponent<WireframeCamera>();
+        if (wireframe == null)
+        {
+            wireframe = playerCamera.gameObject.AddComponent<WireframeCamera>();
+            wireframe.enabled = false;
+            wireframe.orignalClearFlags = playerCamera.clearFlags;
+        }
+
+        wireframe.enabled = !wireframe.enabled;
+        playerCamera.clearFlags = wireframe.enabled?  CameraClearFlags.SolidColor: wireframe.orignalClearFlags;
     }
 
     private void ToggleNoClip()
@@ -257,4 +288,19 @@ internal class PlacementUtilsWindow : MonoBehaviour
         public VisualTreeAsset VisualTreeAsset { get; set; }
         public PanelSettings PanelSettings { get; set; }
     }
+
+    private class WireframeCamera : MonoBehaviour
+    {
+        public CameraClearFlags orignalClearFlags;
+
+        void OnPreRender()
+        {
+            GL.wireframe = true;
+        }
+        void OnPostRender()
+        {
+            GL.wireframe = false;
+        }
+    }
+
 }

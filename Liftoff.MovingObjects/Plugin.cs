@@ -172,7 +172,7 @@ public sealed class Plugin : BaseUnityPlugin
             if (__0.LevelFlags == LevelFlags.TrackEdit)
                 OnGameEditorInitialized();
             else
-            OnGameModeInitialized();
+                OnGameModeInitialized();
             __instance.onGameModeInitialized -= Callback;
         }
 
