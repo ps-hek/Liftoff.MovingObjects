@@ -167,11 +167,11 @@ public sealed class Plugin : BaseUnityPlugin
     [HarmonyPatch(typeof(LevelInitSequence), "InitializeLevel", typeof(Level))]
     private static void OnInitializeLevel(LevelInitSequence __instance, Level __0)
     {
-        if (__0.LevelFlags == LevelFlags.TrackEdit)
-            return;
-
         void Callback()
         {
+            if (__0.LevelFlags == LevelFlags.TrackEdit)
+                OnGameEditorInitialized();
+            else
             OnGameModeInitialized();
             __instance.onGameModeInitialized -= Callback;
         }
@@ -314,5 +314,12 @@ public sealed class Plugin : BaseUnityPlugin
 
         GroupFlags(flags);
         InjectPlayers(flags);
+    }
+
+    private static void OnGameEditorInitialized()
+    {
+        var buggedEventSystem = GameObject.Find("EventSystem");
+        if (buggedEventSystem != null)
+            GameObject.Destroy(buggedEventSystem);
     }
 }
