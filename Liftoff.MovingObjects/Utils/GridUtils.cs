@@ -20,4 +20,18 @@ internal class GridUtils
     {
         return new Vector3(RoundToStep(value.x, step), RoundToStep(value.y, step), RoundToStep(value.z, step));
     }
+
+    public static float SmartRound(float value, float tolerance)
+    {
+        var r = Mathf.Round(value);
+        if (Mathf.Abs(r - value) > tolerance)
+            return value;
+        return r;
+    }
+
+    public static Vector3 SmartRound(Vector3 value, float tolerance = 0.05f)
+    {
+        return new Vector3(SmartRound(value.x, tolerance), SmartRound(value.y, tolerance),
+            SmartRound(value.z, tolerance));
+    }
 }

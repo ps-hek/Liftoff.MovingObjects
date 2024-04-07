@@ -108,7 +108,7 @@ public sealed class Plugin : BaseUnityPlugin
     [HarmonyPatch(typeof(TrackDragCenterOnCamera), "OnDragHold")]
     [HarmonyPatch(typeof(TrackDragBehaviorSnap), "OnDragHold")]
     [HarmonyPatch(typeof(TrackDragBehaviorRibbon), "OnDragHold")]
-    private static void OnDragHold(TrackDragCenterOnCamera __instance)
+    private static void OnDragHold(MonoBehaviour __instance)
     {
         if (Shared.PlacementUtils.DragGridRound <= 0)
             return;
@@ -118,6 +118,19 @@ public sealed class Plugin : BaseUnityPlugin
         parent.position = GridUtils.RoundVectorToStep(parent.position, Shared.PlacementUtils.DragGridRound);
     }
 
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(TrackDragBehaviorSnap), "OnDragRelease")]
+    [HarmonyPatch(typeof(TrackDragCenterOnCamera), "OnDragRelease")]
+    [HarmonyPatch(typeof(TrackDragBehaviorRibbon), "OnDragRelease")]
+    private static void OnDragRelease(MonoBehaviour __instance)
+    {
+        if (!Shared.PlacementUtils.EnchantedEditor)
+            return;
+
+        var rot = __instance.gameObject.transform.rotation.eulerAngles;
+        __instance.gameObject.transform.rotation =
+            Quaternion.Euler(GridUtils.SmartRound(rot));
+    }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(FlightManager), "ResetDroneRoutine")]
