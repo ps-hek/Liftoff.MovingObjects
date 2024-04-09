@@ -246,6 +246,7 @@ public sealed class Plugin : BaseUnityPlugin
                     trigger.triggerMinSpeed = options.triggerMinSpeed;
                 if (options.triggerMaxSpeed > 0)
                     trigger.triggerMaxSpeed = options.triggerMaxSpeed;
+                trigger.triggerTeleport = options.triggerTeleport;
             }
         }
 

@@ -81,6 +81,8 @@ namespace Liftoff.MovingObjects.Patcher
                 assembly.MainModule.ImportReference(typeof(string)));
             AddSerializableField(assembly, triggerType, "triggerTarget",
                 assembly.MainModule.ImportReference(typeof(string)));
+            AddSerializableField(assembly, triggerType, "triggerTeleport",
+                assembly.MainModule.ImportReference(typeof(bool)));
             AddSerializableField(assembly, triggerType, "triggerMinSpeed",
                 assembly.MainModule.ImportReference(typeof(float)));
             AddSerializableField(assembly, triggerType, "triggerMaxSpeed",

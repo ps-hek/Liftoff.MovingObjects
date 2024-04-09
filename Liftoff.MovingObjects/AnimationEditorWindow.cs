@@ -84,6 +84,7 @@ internal class AnimationEditorWindow : MonoBehaviour
             f => trigger.triggerMinSpeed = f);
         GuiUtils.ConvertToFloatField(_root.Q<TextField>("trigger-target-speed-max"),
             f => trigger.triggerMaxSpeed = f);
+        _root.Q<Toggle>("trigger-teleport").RegisterValueChangedCallback(evt => trigger.triggerTeleport = evt.newValue);
 
         _root.Q<DropdownField>("type")
             .RegisterValueChangedCallback(evt =>
@@ -173,6 +174,9 @@ internal class AnimationEditorWindow : MonoBehaviour
 
             var triggerTarget = _root.Q<TextField>("trigger-target");
             triggerTarget.value = trigger.triggerTarget;
+
+            var triggerTeleport = _root.Q<Toggle>("trigger-teleport");
+            triggerTeleport.value = trigger.triggerTeleport;
 
             var triggerTargetGroup = _root.Q<VisualElement>("trigger-target-section");
 

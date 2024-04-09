@@ -18,17 +18,24 @@ internal class TriggerBehavior : MonoBehaviour
 
     private AnimationPlayer[] _animationPlayers;
     private PhysicsPlayer[] _physicsPlayers;
+    private Vector3[] _teleportPositions;
+
+    private Vector3 _teleportPos;
+    private Rigidbody _teleportDrone;
 
     private bool _triggered;
 
     public float? triggerMaxSpeed;
     public float? triggerMinSpeed;
     public string triggerTarget;
+    public bool triggerTeleport;
 
     private void Start()
     {
         var targetTriggers = FindObjectsByType<TriggerName>(FindObjectsSortMode.None)
             .Where(t => string.Equals(t.triggerName, triggerTarget)).ToArray();
+        if (triggerTeleport)
+            _teleportPositions = targetTriggers.Select(t => t.gameObject.transform.position).ToArray();
         _animationPlayers = targetTriggers.Select(t => t.GetComponent<AnimationPlayer>()).Where(p => p != null)
             .ToArray();
         _physicsPlayers = targetTriggers.Select(t => t.GetComponent<PhysicsPlayer>()).Where(p => p != null).ToArray();
@@ -79,11 +86,27 @@ internal class TriggerBehavior : MonoBehaviour
             Log.LogInfo($"Triggered physics: {player} from '{triggerTarget}'");
             player.Trigger();
         }
+
+        if (_teleportPositions != null && other.attachedRigidbody != null && _teleportDrone == null)
+        {
+           _teleportDrone = other.attachedRigidbody;
+           _teleportPos = _teleportPositions[Random.Range(0, _teleportPositions.Length)];
+        }
     }
 
     public void OnTriggerExit(Collider other)
     {
         if (_triggered && other.gameObject.layer == LayerMask.NameToLayer("Drone"))
             _triggered = false;
+    }
+
+    private void LateUpdate()
+    {
+        if (_teleportDrone == null)
+            return;
+
+
+        _teleportDrone.position = _teleportPos;
+        _teleportDrone = null;
     }
 }
