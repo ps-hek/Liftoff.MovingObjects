@@ -80,7 +80,7 @@ public sealed class Plugin : BaseUnityPlugin
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch(typeof(PanelShareContent), "ShareItem", typeof(string), typeof(Sprite))]
+    [HarmonyPatch(typeof(PopupShareContent), "ShareItem", typeof(string), typeof(Sprite))]
     private static void ShareItem(ref Sprite __1)
     {
         var overwritePreview = Path.Combine(Paths.GameRootPath, "preview.png");

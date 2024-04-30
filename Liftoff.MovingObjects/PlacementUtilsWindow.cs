@@ -165,7 +165,7 @@ internal class PlacementUtilsWindow : MonoBehaviour
     private List<ItemInfo> FindItemsByGroupId(string groupId)
     {
         var items = new List<ItemInfo>();
-        foreach (var trackItemFlag in FindObjectsOfType<TrackItemFlag>())
+        foreach (var trackItemFlag in EditorUtils.FindFlagsByGroupId(groupId))
         {
             var info = ReflectionUtils.GetPrivateFieldValueByType<TrackBlueprint>(trackItemFlag);
             if (info != null && string.Equals(groupId, info.mo_groupId))
@@ -244,7 +244,7 @@ internal class PlacementUtilsWindow : MonoBehaviour
             return;
         }
 
-        var trackItemFlag = raycastHit.transform.gameObject.GetComponentInParent<TrackItemFlag>();
+        var trackItemFlag = EditorUtils.FindFlagInParent(raycastHit.transform.gameObject);
         if (trackItemFlag == null)
         {
             DeselectAll();

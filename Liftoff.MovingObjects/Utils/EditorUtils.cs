@@ -1,22 +1,36 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Liftoff.MovingObjects.Utils;
 
 internal class EditorUtils
 {
 
+    private static readonly Type[] TrackItemTypes = new[]
+    {
+        typeof(TrackItemFlag),
+        typeof(TrackItemKillDroneTrigger),
+        typeof(TrackItemShowTextTrigger),
+        typeof(TrackItemPlaySoundTrigger),
+        typeof(TrackItemRepairPropellersTrigger),
+        typeof(TrackItemChargeBatteryTrigger),
+        typeof(TrackItemFlexibleCheckpointTrigger),
+    };
+
     public static List<Component> FindAllFlags()
     {
         var flags = new List<Component>();
-        flags.AddRange(Object.FindObjectsOfType<TrackItemFlag>());
-        flags.AddRange(Object.FindObjectsOfType<TrackItemKillDroneTrigger>());
-        flags.AddRange(Object.FindObjectsOfType<TrackItemShowTextTrigger>());
-        flags.AddRange(Object.FindObjectsOfType<TrackItemPlaySoundTrigger>());
-        flags.AddRange(Object.FindObjectsOfType<TrackItemRepairPropellersTrigger>());
-        flags.AddRange(Object.FindObjectsOfType<TrackItemChargeBatteryTrigger>());
-        flags.AddRange(Object.FindObjectsOfType<TrackItemFlexibleCheckpointTrigger>());
+        foreach (var type in TrackItemTypes)
+            flags.AddRange(Object.FindObjectsOfType(type).OfType<Component>());
         return flags;
+    }
+
+    public static Component FindFlagInParent(GameObject parent)
+    {
+        return TrackItemTypes.Select(parent.GetComponentInParent).FirstOrDefault(component => component != null);
     }
 
     public static List<Component> FindFlagsByGroupId(string groupId)
